@@ -1,0 +1,37 @@
+{
+  "name": "react-native-offline-api",
+  "version": "0.1.0",
+  "description": "Offline first API wrapper for react-native",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Exilz/react-native-offline-api.git"
+  },
+  "keywords": [
+    "react",
+    "native",
+    "offline",
+    "api",
+    "wrapper",
+    "superagent",
+    "axios",
+    "fetch",
+    "http",
+    "request"
+  ],
+  "author": "Maxime Bertonnier <m.bertonnier@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Exilz/react-native-offline-api/issues"
+  },
+  "homepage": "https://github.com/Exilz/react-native-offline-api#readme",
+  "devDependencies": {
+    "typescript": "^2.4.2"
+  },
+  "dependencies": {
+    "lodash.mapvalues": "^4.6.0"
+  }
+}
