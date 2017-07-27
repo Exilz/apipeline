@@ -43,29 +43,37 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var react_native_1 = require("react-native");
 var _mapValues = require("lodash.mapvalues");
+var _merge = require("lodash.merge");
+var sha = require("jssha");
 var DEFAULT_API_OPTIONS = {
     debugAPI: false,
     prefixes: { default: '/' },
     printNetworkRequests: false,
     disableCache: false,
-    cacheExpiration: 24 * 3600 * 1000,
-    updateDelay: 5 * 60 * 1000
+    cacheExpiration: 5 * 60 * 1000
 };
 var DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
     domain: 'default',
-    prefix: 'default'
+    prefix: 'default',
+    disableCache: false
 };
+var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
+var CACHE_PREFIX = 'offlineApiCache:';
+// AsyncStorage.clear();
 var OfflineFirstAPI = (function () {
-    function OfflineFirstAPI(options, services) {
+    function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
+        this._APIDriver = DEFAULT_CACHE_DRIVER;
         options && this.setOptions(options);
         services && this.setServices(services);
+        driver && this.setCacheDriver(driver);
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, fullPath, res, data, err_1;
+            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedRes, res, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -76,27 +84,77 @@ var OfflineFirstAPI = (function () {
                         fullPath = this._constructPath(serviceDefinition, options);
                         _a.label = 1;
                     case 1:
-                        _a.trys.push([1, 4, , 5]);
-                        return [4 /*yield*/, fetch(fullPath, __assign({}, options.fetchOptions, { method: serviceDefinition.method, headers: options.headers || {} }))];
+                        _a.trys.push([1, 9, , 10]);
+                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, options)];
                     case 2:
-                        res = _a.sent();
-                        console.log('res', res);
-                        return [4 /*yield*/, res.json()];
+                        middlewares = _a.sent();
+                        fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
+                        fetchHeaders = options && options.fetchHeaders;
+                        shouldCache = !this._APIOptions.disableCache &&
+                            !(serviceDefinition.disableCache || (options && options.disableCache));
+                        requestId = void 0;
+                        expiration = void 0;
+                        if (!shouldCache) return [3 /*break*/, 4];
+                        _sha = new sha('SHA-1', 'TEXT');
+                        _sha.update(fullPath + ":" + (fetchHeaders ? 'headersOnly' : '') + ":" + JSON.stringify(fetchOptions));
+                        requestId = _sha.getHash('HEX');
+                        expirationDelay = (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
+                        expiration = Date.now() + expirationDelay;
+                        return [4 /*yield*/, this._getCachedData(service, requestId)];
                     case 3:
-                        data = _a.sent();
-                        console.log('data', data);
-                        return [2 /*return*/, data];
+                        cachedData = _a.sent();
+                        if (cachedData) {
+                            return [2 /*return*/, cachedData];
+                        }
+                        _a.label = 4;
                     case 4:
+                        // Network fetch
+                        this._logNetwork(serviceDefinition, fetchHeaders, options);
+                        this._log('full URL for request', fullPath);
+                        this._log('full fetch options for request', fetchOptions);
+                        parsedRes = void 0;
+                        return [4 /*yield*/, fetch(fullPath, fetchOptions)];
+                    case 5:
+                        res = _a.sent();
+                        this._log('raw network response', res);
+                        if (!fetchHeaders) return [3 /*break*/, 6];
+                        parsedRes = res.headers && res.headers.map ? res.headers.map : {};
+                        return [3 /*break*/, 8];
+                    case 6: return [4 /*yield*/, res.json()];
+                    case 7:
+                        parsedRes = _a.sent();
+                        _a.label = 8;
+                    case 8:
+                        res.ok && shouldCache && this._cache(service, requestId, parsedRes, expiration);
+                        return [2 /*return*/, parsedRes];
+                    case 9:
                         err_1 = _a.sent();
                         throw new Error(err_1);
-                    case 5: return [2 /*return*/];
+                    case 10: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    OfflineFirstAPI.prototype.fetchHeaders = function (service, options) {
+        return __awaiter(this, void 0, void 0, function () {
+            var err_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        return [4 /*yield*/, this.fetch(service, __assign({}, options, { fetchHeaders: true }))];
+                    case 1: return [2 /*return*/, _a.sent()];
+                    case 2:
+                        err_2 = _a.sent();
+                        throw new Error(err_2);
+                    case 3: return [2 /*return*/];
                 }
             });
         });
     };
     OfflineFirstAPI.prototype.setOptions = function (options) {
         this._APIOptions = this._mergeAPIOptionsWithDefaultValues(options);
-        console.log('options', this._APIOptions);
+        this._log('options set to ', this._APIOptions);
         if (!this._APIOptions.domains.default) {
             throw new Error("You didn't set your default domain URL in your options. \n " +
                 "new OfflineFirstAPI({ domains: { default: 'http://myApi.net' } }, ...)");
@@ -104,7 +162,131 @@ var OfflineFirstAPI = (function () {
     };
     OfflineFirstAPI.prototype.setServices = function (services) {
         this._APIServices = this._mergeServicesWithDefaultValues(services);
-        console.log('services', this._APIServices);
+        this._log('services set to', this._APIServices);
+    };
+    OfflineFirstAPI.prototype.setCacheDriver = function (driver) {
+        this._APIDriver = driver;
+        this._log('custom driver set');
+    };
+    OfflineFirstAPI.prototype._cache = function (service, requestId, response, expiration) {
+        return __awaiter(this, void 0, void 0, function () {
+            var err_3;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        this._log("Caching " + requestId + " ...");
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, , 5]);
+                        return [4 /*yield*/, this._addKeyToServiceDictionary(service, requestId, expiration)];
+                    case 2:
+                        _a.sent();
+                        return [4 /*yield*/, this._APIDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response))];
+                    case 3:
+                        _a.sent();
+                        this._log("Updated cache for request " + requestId);
+                        return [2 /*return*/, true];
+                    case 4:
+                        err_3 = _a.sent();
+                        throw new Error("Error while caching API response for " + requestId);
+                    case 5: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    OfflineFirstAPI.prototype._getCachedData = function (service, requestId) {
+        return __awaiter(this, void 0, void 0, function () {
+            var serviceDictionary, expiration, cachedData, err_4;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this._APIDriver.getItem(this._getServiceDictionaryKey(service))];
+                    case 1:
+                        serviceDictionary = _a.sent();
+                        serviceDictionary = JSON.parse(serviceDictionary) || {};
+                        expiration = serviceDictionary[requestId];
+                        if (!expiration) return [3 /*break*/, 8];
+                        this._log(requestId + " already cached, expiring at : " + expiration);
+                        if (!(expiration > Date.now())) return [3 /*break*/, 6];
+                        _a.label = 2;
+                    case 2:
+                        _a.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, this._APIDriver.getItem(this._getCacheObjectKey(requestId))];
+                    case 3:
+                        cachedData = _a.sent();
+                        return [2 /*return*/, JSON.parse(cachedData)];
+                    case 4:
+                        err_4 = _a.sent();
+                        throw new Error(err_4);
+                    case 5: return [3 /*break*/, 7];
+                    case 6: return [2 /*return*/, false];
+                    case 7: return [3 /*break*/, 9];
+                    case 8:
+                        this._log(requestId + " not yet cached");
+                        return [2 /*return*/, false];
+                    case 9: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    OfflineFirstAPI.prototype._addKeyToServiceDictionary = function (service, requestId, expiration) {
+        return __awaiter(this, void 0, void 0, function () {
+            var serviceDictionaryKey, dictionary, err_5;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        serviceDictionaryKey = this._getServiceDictionaryKey(service);
+                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                    case 1:
+                        dictionary = _a.sent();
+                        if (!dictionary) {
+                            dictionary = {};
+                        }
+                        else {
+                            dictionary = JSON.parse(dictionary);
+                        }
+                        dictionary[requestId] = expiration;
+                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        return [2 /*return*/, true];
+                    case 2:
+                        err_5 = _a.sent();
+                        throw new Error(err_5);
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    OfflineFirstAPI.prototype._getServiceDictionaryKey = function (service) {
+        return CACHE_PREFIX + ":dictionary:" + service;
+    };
+    OfflineFirstAPI.prototype._getCacheObjectKey = function (requestId) {
+        return CACHE_PREFIX + ":" + requestId;
+    };
+    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, options) {
+        return __awaiter(this, void 0, void 0, function () {
+            var middlewares, resolvedMiddlewares, err_6;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
+                        if (!middlewares.length) return [3 /*break*/, 5];
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, options); });
+                        return [4 /*yield*/, Promise.all(middlewares)];
+                    case 2:
+                        resolvedMiddlewares = _a.sent();
+                        return [2 /*return*/, _merge.apply(void 0, resolvedMiddlewares)];
+                    case 3:
+                        err_6 = _a.sent();
+                        throw new Error("Error while applying middlewares for " + serviceDefinition.path + " : " + err_6);
+                    case 4: return [3 /*break*/, 6];
+                    case 5: return [2 /*return*/, {}];
+                    case 6: return [2 /*return*/];
+                }
+            });
+        });
     };
     OfflineFirstAPI.prototype._constructPath = function (serviceDefinition, options) {
         var domainKey = (options && options.domain) || serviceDefinition.domain;
@@ -115,14 +297,15 @@ var OfflineFirstAPI = (function () {
         return domainURL + prefix + '/' + parsedPath;
     };
     OfflineFirstAPI.prototype._parsePath = function (serviceDefinition, options) {
-        var pathParameters = options.pathParameters, queryParameters = options.queryParameters;
         var path = serviceDefinition.path;
-        if (pathParameters) {
+        if (options && options.pathParameters) {
+            var pathParameters = options.pathParameters;
             for (var i in pathParameters) {
                 path = path.replace(":" + i, pathParameters[i]);
             }
         }
-        if (queryParameters) {
+        if (options && options.queryParameters) {
+            var queryParameters = options.queryParameters;
             var insertedQueryParameters = 0;
             for (var i in queryParameters) {
                 path += insertedQueryParameters === 0 ?
@@ -149,6 +332,22 @@ var OfflineFirstAPI = (function () {
             }
             return __assign({}, DEFAULT_SERVICE_OPTIONS, service);
         });
+    };
+    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fetchHeaders, options) {
+        if (this._APIOptions.printNetworkRequests) {
+            console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + serviceDefinition.path + " " +
+                ("(" + ((options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
+        }
+    };
+    OfflineFirstAPI.prototype._log = function (msg, value) {
+        if (this._APIOptions.debugAPI) {
+            if (value) {
+                console.log("OfflineFirstAPI | " + msg, value);
+            }
+            else {
+                console.log("OfflineFirstAPI | " + msg);
+            }
+        }
     };
     return OfflineFirstAPI;
 }());
