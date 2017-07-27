@@ -1,4 +1,5 @@
 import * as _mapValues from 'lodash.mapvalues';
+import * as _merge from 'lodash.merge';
 
 const DEFAULT_API_OPTIONS = {
     debugAPI: false,
@@ -33,17 +34,20 @@ export default class OfflineFirstAPI {
         const fullPath = this._constructPath(serviceDefinition, options);
 
         try {
-            const res = await fetch(
-                fullPath,
-                {
-                    ...options.fetchOptions,
-                    method: serviceDefinition.method,
-                    headers: options.headers || {}
-                }
+            const middlewares = await this._applyMiddlewares(serviceDefinition, options);
+            const fetchOptions = _merge(
+                middlewares,
+                (options && options.fetchOptions) || {},
+                { method: serviceDefinition.method },
+                { headers: (options && options.headers) || {} }
             );
-            console.log('res', res);
+
+            this._logNetwork(serviceDefinition, options);
+            this._log('full URL for request', fullPath);
+            this._log('full fetch options for request', fetchOptions);
+
+            const res = await fetch(fullPath, fetchOptions);
             const data = await res.json();
-            console.log('data', data);
             return data;
         } catch (err) {
             throw new Error(err);
@@ -52,7 +56,7 @@ export default class OfflineFirstAPI {
 
     public setOptions (options: IAPIOptions) {
         this._APIOptions = this._mergeAPIOptionsWithDefaultValues(options);
-        console.log('options', this._APIOptions);
+        this._log('options set to ', this._APIOptions);
 
         if (!this._APIOptions.domains.default) {
             throw new Error(
@@ -62,9 +66,24 @@ export default class OfflineFirstAPI {
         }
     }
 
-    public setServices (services: IAPIServices) {
+    public setServices (services: IAPIServices): void {
         this._APIServices = this._mergeServicesWithDefaultValues(services);
-        console.log('services', this._APIServices);
+        this._log('services set to', this._APIServices)
+    }
+
+    private async _applyMiddlewares (serviceDefinition: IAPIService, options?: IFetchOptions) {
+        let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
+        if (middlewares.length) {
+            try {
+                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, options));
+                const resolvedMiddlewares = await Promise.all(middlewares);
+                return _merge(...resolvedMiddlewares);
+            } catch (err) {
+                throw new Error(`Error while applying middlewares for ${serviceDefinition.path} : ${err}`);
+            }
+        } else {
+            return {};
+        }
     }
 
     private _constructPath (serviceDefinition: IAPIService, options?: IFetchOptions): string {
@@ -77,16 +96,17 @@ export default class OfflineFirstAPI {
         return domainURL + prefix + '/' + parsedPath;
     }
 
-    private _parsePath (serviceDefinition: IAPIService, options: IFetchOptions): string {
-        const { pathParameters, queryParameters } = options;
+    private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): string {
         let path = serviceDefinition.path;
 
-        if (pathParameters) {
+        if (options && options.pathParameters) {
+            const { pathParameters } = options;
             for (let i in pathParameters) {
                 path = path.replace(`:${i}`, pathParameters[i]);
             }
         }
-        if (queryParameters) {
+        if (options && options.queryParameters) {
+            const { queryParameters } = options;
             let insertedQueryParameters = 0;
             for (let i in queryParameters) {
                 path += insertedQueryParameters === 0 ?
@@ -129,11 +149,32 @@ export default class OfflineFirstAPI {
             };
         });
     }
+
+    private _logNetwork (serviceDefinition: IAPIService, options?: IFetchOptions): void {
+        if (this._APIOptions.printNetworkRequests) {
+            console.log(
+                `%c Network request for ${serviceDefinition.path} ` +
+                `(${(options && options.method) || serviceDefinition.method})`,
+                'font-weight: bold; color: blue'
+            );
+        }
+    }
+
+    private _log (msg: string, value?: any): void {
+        if (this._APIOptions.debugAPI) {
+            if (value) {
+                console.log(`OfflineFirstAPI | ${msg}`, value);
+            } else {
+                console.log(`OfflineFirstAPI | ${msg}`);
+            }
+        }
+    }
 }
 
 interface IAPIOptions {
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
+    middlewares?: APIMiddleware[];
     debugAPI?: boolean;
     printNetworkRequests?: boolean;
     disableCache?: boolean;
@@ -148,15 +189,19 @@ interface IAPIService {
     method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
     domain?: string;
     prefix?: string;
+    middlewares?: APIMiddleware[];
 };
 
 interface IFetchOptions extends IAPIService {
     pathParameters?: { [key: string]: string };
     queryParameters?: { [key: string]: string };
     headers?: { [key: string]: string };
+    middlewares?: APIMiddleware[];
     fetchOptions?: any;
 };
 
 interface IAPIServices {
     [key: string]: IAPIService;
 };
+
+type APIMiddleware = (serviceDefinition: IAPIService, options: IFetchOptions) => any;
