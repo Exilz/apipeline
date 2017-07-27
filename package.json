@@ -33,6 +33,7 @@
     "typescript": "^2.4.2"
   },
   "dependencies": {
+    "jssha": "^2.3.1",
     "lodash.mapvalues": "^4.6.0",
     "lodash.merge": "^4.6.0"
   }
