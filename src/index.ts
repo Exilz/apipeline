@@ -56,38 +56,47 @@ export default class OfflineFirstAPI {
             let requestId;
             let expiration;
 
-            if (shouldCache) {
-                const _sha = new sha('SHA-1', 'TEXT');
-                _sha.update(`${fullPath}:${fetchHeaders ? 'headersOnly': ''}:${JSON.stringify(fetchOptions)}`);
-                requestId = _sha.getHash('HEX');
+            const _sha = new sha('SHA-1', 'TEXT');
+            _sha.update(`${fullPath}:${fetchHeaders ? 'headersOnly' : ''}:${JSON.stringify(fetchOptions)}`);
+            requestId = _sha.getHash('HEX');
 
-                const expirationDelay =
-                    (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
-                expiration = Date.now() + expirationDelay;
-                const cachedData = await this._getCachedData(service, requestId);
+            const expirationDelay =
+                (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
+            expiration = Date.now() + expirationDelay;
+            const cachedData = await this._getCachedData(service, requestId, fullPath);
 
-                if (cachedData) {
-                    return cachedData;
-                }
+            if (cachedData.success && cachedData.fresh) {
+                this._log(`Using fresh cache for ${fullPath}`);
+                return cachedData.data;
             }
 
             // Network fetch
             this._logNetwork(serviceDefinition, fetchHeaders, options);
             this._log('full URL for request', fullPath);
             this._log('full fetch options for request', fetchOptions);
-            let parsedRes;
-            const res = await fetch(fullPath, fetchOptions);
-            this._log('raw network response', res);
+            let parsedResponseData;
+            const res = await this._fetch(fullPath, fetchOptions);
 
-            if (fetchHeaders) {
-                parsedRes = res.headers && res.headers.map ? res.headers.map : {};
-            } else {
-                parsedRes = await res.json();
+            if (!res.success) {
+                if (cachedData.success && cachedData.data) {
+                    this._log(`Using stale cache for ${fullPath} (network request failed)`);
+                    return cachedData.data;
+                } else {
+                    throw new Error(`Cannot fetch data for ${service} online, no cache either.`);
+                }
             }
 
-            res.ok && shouldCache && this._cache(service, requestId, parsedRes, expiration);
+            this._log('raw network response', res);
+            if (fetchHeaders) {
+                parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
+            } else {
+                parsedResponseData = await res.data.json();
+            }
 
-            return parsedRes;
+            res.data.ok && shouldCache && this._cache(service, requestId, parsedResponseData, expiration);
+
+            this._log('parsed network response', parsedResponseData);
+            return parsedResponseData;
         } catch (err) {
             throw new Error(err);
         }
@@ -123,6 +132,14 @@ export default class OfflineFirstAPI {
         this._log('custom driver set');
     }
 
+    private async _fetch (url: string, options?: any): Promise<IFetchResponse> {
+        try {
+            return { success: true, data: await fetch(url, options) };
+        } catch (err) {
+            return { success: false }
+        }
+    }
+
     private async _cache (service: string, requestId: string, response: any, expiration: number): Promise<void|boolean> {
         this._log(`Caching ${requestId} ...`);
         try {
@@ -135,26 +152,27 @@ export default class OfflineFirstAPI {
         }
     }
 
-    private async _getCachedData (service: string, requestId: string): Promise<object|boolean> {
+    private async _getCachedData (service: string, requestId: string, fullPath: string): Promise<ICachedData> {
         let serviceDictionary = await this._APIDriver.getItem(this._getServiceDictionaryKey(service));
         serviceDictionary = JSON.parse(serviceDictionary) || {};
 
         const expiration = serviceDictionary[requestId];
         if (expiration) {
-            this._log(`${requestId} already cached, expiring at : ${expiration}`)
-            if (expiration > Date.now()) {
-                try {
-                    const cachedData = await this._APIDriver.getItem(this._getCacheObjectKey(requestId));
-                    return JSON.parse(cachedData);
-                } catch (err) {
-                    throw new Error(err);
+            this._log(`${fullPath} already cached, expiring at : ${expiration}`)
+            try {
+                const rawCachedData = await this._APIDriver.getItem(this._getCacheObjectKey(requestId));
+                const parsedCachedData = JSON.parse(rawCachedData);
+                if (expiration > Date.now()) {
+                    return { success: true, fresh: true, data: parsedCachedData };
+                } else {
+                    return { success: true, fresh: false, data: parsedCachedData };
                 }
-            } else {
-                return false;
+            } catch (err) {
+                throw new Error(err);
             }
         } else {
-            this._log(`${requestId} not yet cached`);
-            return false;
+            this._log(`${fullPath} not yet cached`);
+            return { success: false };
         }
     }
 
@@ -316,6 +334,17 @@ interface IFetchOptions extends IAPIService {
     middlewares?: APIMiddleware[];
     fetchOptions?: any;
 };
+
+interface IFetchResponse {
+    success: boolean;
+    data?: any;
+}
+
+interface ICachedData {
+    success: boolean;
+    data?: any;
+    fresh?: boolean;
+}
 
 interface IAPIDriver {
     getItem(key: string, callback?: (error?: Error, result?: string) => void);

@@ -73,7 +73,7 @@ var OfflineFirstAPI = (function () {
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedRes, res, err_1;
+            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -84,7 +84,7 @@ var OfflineFirstAPI = (function () {
                         fullPath = this._constructPath(serviceDefinition, options);
                         _a.label = 1;
                     case 1:
-                        _a.trys.push([1, 9, , 10]);
+                        _a.trys.push([1, 8, , 9]);
                         return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, options)];
                     case 2:
                         middlewares = _a.sent();
@@ -94,43 +94,51 @@ var OfflineFirstAPI = (function () {
                             !(serviceDefinition.disableCache || (options && options.disableCache));
                         requestId = void 0;
                         expiration = void 0;
-                        if (!shouldCache) return [3 /*break*/, 4];
                         _sha = new sha('SHA-1', 'TEXT');
                         _sha.update(fullPath + ":" + (fetchHeaders ? 'headersOnly' : '') + ":" + JSON.stringify(fetchOptions));
                         requestId = _sha.getHash('HEX');
                         expirationDelay = (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
                         expiration = Date.now() + expirationDelay;
-                        return [4 /*yield*/, this._getCachedData(service, requestId)];
+                        return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
                     case 3:
                         cachedData = _a.sent();
-                        if (cachedData) {
-                            return [2 /*return*/, cachedData];
+                        if (cachedData.success && cachedData.fresh) {
+                            this._log("Using fresh cache for " + fullPath);
+                            return [2 /*return*/, cachedData.data];
                         }
-                        _a.label = 4;
-                    case 4:
                         // Network fetch
                         this._logNetwork(serviceDefinition, fetchHeaders, options);
                         this._log('full URL for request', fullPath);
                         this._log('full fetch options for request', fetchOptions);
-                        parsedRes = void 0;
-                        return [4 /*yield*/, fetch(fullPath, fetchOptions)];
-                    case 5:
+                        parsedResponseData = void 0;
+                        return [4 /*yield*/, this._fetch(fullPath, fetchOptions)];
+                    case 4:
                         res = _a.sent();
+                        if (!res.success) {
+                            if (cachedData.success && cachedData.data) {
+                                this._log("Using stale cache for " + fullPath + " (network request failed)");
+                                return [2 /*return*/, cachedData.data];
+                            }
+                            else {
+                                throw new Error("Cannot fetch data for " + service + " online, no cache either.");
+                            }
+                        }
                         this._log('raw network response', res);
-                        if (!fetchHeaders) return [3 /*break*/, 6];
-                        parsedRes = res.headers && res.headers.map ? res.headers.map : {};
-                        return [3 /*break*/, 8];
-                    case 6: return [4 /*yield*/, res.json()];
+                        if (!fetchHeaders) return [3 /*break*/, 5];
+                        parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
+                        return [3 /*break*/, 7];
+                    case 5: return [4 /*yield*/, res.data.json()];
+                    case 6:
+                        parsedResponseData = _a.sent();
+                        _a.label = 7;
                     case 7:
-                        parsedRes = _a.sent();
-                        _a.label = 8;
+                        res.data.ok && shouldCache && this._cache(service, requestId, parsedResponseData, expiration);
+                        this._log('parsed network response', parsedResponseData);
+                        return [2 /*return*/, parsedResponseData];
                     case 8:
-                        res.ok && shouldCache && this._cache(service, requestId, parsedRes, expiration);
-                        return [2 /*return*/, parsedRes];
-                    case 9:
                         err_1 = _a.sent();
                         throw new Error(err_1);
-                    case 10: return [2 /*return*/];
+                    case 9: return [2 /*return*/];
                 }
             });
         });
@@ -168,9 +176,27 @@ var OfflineFirstAPI = (function () {
         this._APIDriver = driver;
         this._log('custom driver set');
     };
+    OfflineFirstAPI.prototype._fetch = function (url, options) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _a, err_3;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        _b.trys.push([0, 2, , 3]);
+                        _a = { success: true };
+                        return [4 /*yield*/, fetch(url, options)];
+                    case 1: return [2 /*return*/, (_a.data = _b.sent(), _a)];
+                    case 2:
+                        err_3 = _b.sent();
+                        return [2 /*return*/, { success: false }];
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
     OfflineFirstAPI.prototype._cache = function (service, requestId, response, expiration) {
         return __awaiter(this, void 0, void 0, function () {
-            var err_3;
+            var err_4;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -187,16 +213,16 @@ var OfflineFirstAPI = (function () {
                         this._log("Updated cache for request " + requestId);
                         return [2 /*return*/, true];
                     case 4:
-                        err_3 = _a.sent();
+                        err_4 = _a.sent();
                         throw new Error("Error while caching API response for " + requestId);
                     case 5: return [2 /*return*/];
                 }
             });
         });
     };
-    OfflineFirstAPI.prototype._getCachedData = function (service, requestId) {
+    OfflineFirstAPI.prototype._getCachedData = function (service, requestId, fullPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDictionary, expiration, cachedData, err_4;
+            var serviceDictionary, expiration, rawCachedData, parsedCachedData, err_5;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this._APIDriver.getItem(this._getServiceDictionaryKey(service))];
@@ -204,33 +230,37 @@ var OfflineFirstAPI = (function () {
                         serviceDictionary = _a.sent();
                         serviceDictionary = JSON.parse(serviceDictionary) || {};
                         expiration = serviceDictionary[requestId];
-                        if (!expiration) return [3 /*break*/, 8];
-                        this._log(requestId + " already cached, expiring at : " + expiration);
-                        if (!(expiration > Date.now())) return [3 /*break*/, 6];
+                        if (!expiration) return [3 /*break*/, 6];
+                        this._log(fullPath + " already cached, expiring at : " + expiration);
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 4, , 5]);
                         return [4 /*yield*/, this._APIDriver.getItem(this._getCacheObjectKey(requestId))];
                     case 3:
-                        cachedData = _a.sent();
-                        return [2 /*return*/, JSON.parse(cachedData)];
+                        rawCachedData = _a.sent();
+                        parsedCachedData = JSON.parse(rawCachedData);
+                        if (expiration > Date.now()) {
+                            return [2 /*return*/, { success: true, fresh: true, data: parsedCachedData }];
+                        }
+                        else {
+                            return [2 /*return*/, { success: true, fresh: false, data: parsedCachedData }];
+                        }
+                        return [3 /*break*/, 5];
                     case 4:
-                        err_4 = _a.sent();
-                        throw new Error(err_4);
+                        err_5 = _a.sent();
+                        throw new Error(err_5);
                     case 5: return [3 /*break*/, 7];
-                    case 6: return [2 /*return*/, false];
-                    case 7: return [3 /*break*/, 9];
-                    case 8:
-                        this._log(requestId + " not yet cached");
-                        return [2 /*return*/, false];
-                    case 9: return [2 /*return*/];
+                    case 6:
+                        this._log(fullPath + " not yet cached");
+                        return [2 /*return*/, { success: false }];
+                    case 7: return [2 /*return*/];
                 }
             });
         });
     };
     OfflineFirstAPI.prototype._addKeyToServiceDictionary = function (service, requestId, expiration) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDictionaryKey, dictionary, err_5;
+            var serviceDictionaryKey, dictionary, err_6;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -249,8 +279,8 @@ var OfflineFirstAPI = (function () {
                         this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         return [2 /*return*/, true];
                     case 2:
-                        err_5 = _a.sent();
-                        throw new Error(err_5);
+                        err_6 = _a.sent();
+                        throw new Error(err_6);
                     case 3: return [2 /*return*/];
                 }
             });
@@ -264,7 +294,7 @@ var OfflineFirstAPI = (function () {
     };
     OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var middlewares, resolvedMiddlewares, err_6;
+            var middlewares, resolvedMiddlewares, err_7;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -279,8 +309,8 @@ var OfflineFirstAPI = (function () {
                         resolvedMiddlewares = _a.sent();
                         return [2 /*return*/, _merge.apply(void 0, resolvedMiddlewares)];
                     case 3:
-                        err_6 = _a.sent();
-                        throw new Error("Error while applying middlewares for " + serviceDefinition.path + " : " + err_6);
+                        err_7 = _a.sent();
+                        throw new Error("Error while applying middlewares for " + serviceDefinition.path + " : " + err_7);
                     case 4: return [3 /*break*/, 6];
                     case 5: return [2 /*return*/, {}];
                     case 6: return [2 /*return*/];
