@@ -62,7 +62,6 @@ var DEFAULT_SERVICE_OPTIONS = {
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
 var CACHE_PREFIX = 'offlineApiCache:';
-// AsyncStorage.clear();
 var OfflineFirstAPI = (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
@@ -114,6 +113,7 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, this._fetch(fullPath, fetchOptions)];
                     case 4:
                         res = _a.sent();
+                        // If the network request fails, return the cached data if it's valid, a throw an error
                         if (!res.success) {
                             if (cachedData.success && cachedData.data) {
                                 this._log("Using stale cache for " + fullPath + " (network request failed)");
@@ -132,7 +132,10 @@ var OfflineFirstAPI = (function () {
                         parsedResponseData = _a.sent();
                         _a.label = 7;
                     case 7:
-                        res.data.ok && shouldCache && this._cache(service, requestId, parsedResponseData, expiration);
+                        // Cache if it hasn't been disabled and if the network request has been successful
+                        if (res.data.ok && shouldCache) {
+                            this._cache(service, requestId, parsedResponseData, expiration);
+                        }
                         this._log('parsed network response', parsedResponseData);
                         return [2 /*return*/, parsedResponseData];
                     case 8:
@@ -160,6 +163,58 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
+    OfflineFirstAPI.prototype.clearCache = function (service) {
+        return __awaiter(this, void 0, void 0, function () {
+            var keysToRemove, _a, _b, _i, serviceName, keysForService, err_3;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        this._log("clearing " + (service ? "cache for " + service : 'all cache') + "...");
+                        _c.label = 1;
+                    case 1:
+                        _c.trys.push([1, 10, , 11]);
+                        keysToRemove = [];
+                        if (!!service) return [3 /*break*/, 6];
+                        _a = [];
+                        for (_b in this._APIServices)
+                            _a.push(_b);
+                        _i = 0;
+                        _c.label = 2;
+                    case 2:
+                        if (!(_i < _a.length)) return [3 /*break*/, 5];
+                        serviceName = _a[_i];
+                        return [4 /*yield*/, this._getAllKeysForService(serviceName)];
+                    case 3:
+                        keysForService = _c.sent();
+                        keysToRemove = keysToRemove.concat(keysForService);
+                        _c.label = 4;
+                    case 4:
+                        _i++;
+                        return [3 /*break*/, 2];
+                    case 5: return [3 /*break*/, 8];
+                    case 6:
+                        // Clear only the supplied service's dictionary and associated keys
+                        if (!this._APIServices[service]) {
+                            throw new Error("Cannot clear cache for unregistered service : '" + service + "'");
+                        }
+                        return [4 /*yield*/, this._getAllKeysForService(service)];
+                    case 7:
+                        keysToRemove = _c.sent();
+                        _c.label = 8;
+                    case 8:
+                        this._log('keys to be removed', keysToRemove);
+                        return [4 /*yield*/, this._APIDriver.multiRemove(keysToRemove)];
+                    case 9:
+                        _c.sent();
+                        return [2 /*return*/];
+                    case 10:
+                        err_3 = _c.sent();
+                        throw new Error(err_3);
+                    case 11: return [2 /*return*/];
+                }
+            });
+        });
+    };
     OfflineFirstAPI.prototype.setOptions = function (options) {
         this._APIOptions = this._mergeAPIOptionsWithDefaultValues(options);
         this._log('options set to ', this._APIOptions);
@@ -176,9 +231,18 @@ var OfflineFirstAPI = (function () {
         this._APIDriver = driver;
         this._log('custom driver set');
     };
+    /**
+     * Simple helper that won't ever throw an error into the stack if the network request
+     * isn't successful. This is useful to implement the cache's logic when the API is unreachable.
+     * @private
+     * @param {string} url
+     * @param {*} [options]
+     * @returns {Promise<IFetchResponse>}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._fetch = function (url, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, err_3;
+            var _a, err_4;
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
@@ -187,16 +251,27 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, fetch(url, options)];
                     case 1: return [2 /*return*/, (_a.data = _b.sent(), _a)];
                     case 2:
-                        err_3 = _b.sent();
+                        err_4 = _b.sent();
                         return [2 /*return*/, { success: false }];
                     case 3: return [2 /*return*/];
                 }
             });
         });
     };
+    /**
+     * Cache the network response for a request. Create the service dictionary if it hasn't been done yet,
+     * store the expiration date to the requestId and finally store the data itself.
+     * @private
+     * @param {string} service
+     * @param {string} requestId
+     * @param {*} response
+     * @param {number} expiration
+     * @returns {(Promise<void|boolean>)}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._cache = function (service, requestId, response, expiration) {
         return __awaiter(this, void 0, void 0, function () {
-            var err_4;
+            var err_5;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -213,16 +288,27 @@ var OfflineFirstAPI = (function () {
                         this._log("Updated cache for request " + requestId);
                         return [2 /*return*/, true];
                     case 4:
-                        err_4 = _a.sent();
+                        err_5 = _a.sent();
                         throw new Error("Error while caching API response for " + requestId);
                     case 5: return [2 /*return*/];
                 }
             });
         });
     };
+    /**
+     * Promise that tries to fetch a cached data. Resolves the data if successful and its freshness.
+     * If this request hasn't been cached yet, resolves with success set to false.
+     * Throws an error only if the data itself couldn't be fetched for any reason.
+     * @private
+     * @param {string} service
+     * @param {string} requestId
+     * @param {string} fullPath
+     * @returns {Promise<ICachedData>}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._getCachedData = function (service, requestId, fullPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDictionary, expiration, rawCachedData, parsedCachedData, err_5;
+            var serviceDictionary, expiration, rawCachedData, parsedCachedData, err_6;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this._APIDriver.getItem(this._getServiceDictionaryKey(service))];
@@ -247,8 +333,8 @@ var OfflineFirstAPI = (function () {
                         }
                         return [3 /*break*/, 5];
                     case 4:
-                        err_5 = _a.sent();
-                        throw new Error(err_5);
+                        err_6 = _a.sent();
+                        throw new Error(err_6);
                     case 5: return [3 /*break*/, 7];
                     case 6:
                         this._log(fullPath + " not yet cached");
@@ -258,9 +344,18 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
+    /**
+     * Pushes a requestId into a service's dictionary and associate its expiration date to it.
+     * @private
+     * @param {string} service
+     * @param {string} requestId
+     * @param {number} expiration
+     * @returns {Promise<boolean>}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._addKeyToServiceDictionary = function (service, requestId, expiration) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDictionaryKey, dictionary, err_6;
+            var serviceDictionaryKey, dictionary, err_7;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -279,22 +374,80 @@ var OfflineFirstAPI = (function () {
                         this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         return [2 /*return*/, true];
                     case 2:
-                        err_6 = _a.sent();
-                        throw new Error(err_6);
+                        err_7 = _a.sent();
+                        throw new Error(err_7);
                     case 3: return [2 /*return*/];
                 }
             });
         });
     };
+    /**
+     * Promise that resolves every cache key associated to a service : the service dictionary's name, and all requestId
+     * stored. This is useful to clear the cache without affecting the user's stored data not related to this API.
+     * @private
+     * @param {string} service
+     * @returns {Promise<string[]>}
+     * @memberof OfflineFirstAPI
+     */
+    OfflineFirstAPI.prototype._getAllKeysForService = function (service) {
+        return __awaiter(this, void 0, void 0, function () {
+            var keys, serviceDictionaryKey, dictionary, dictionaryKeys, err_8;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        keys = [];
+                        serviceDictionaryKey = this._getServiceDictionaryKey(service);
+                        keys.push(serviceDictionaryKey);
+                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                    case 1:
+                        dictionary = _a.sent();
+                        if (dictionary) {
+                            dictionary = JSON.parse(dictionary);
+                            dictionaryKeys = Object.keys(dictionary).map(function (key) { return CACHE_PREFIX + ":" + key; });
+                            keys = keys.concat(dictionaryKeys);
+                        }
+                        return [2 /*return*/, keys];
+                    case 2:
+                        err_8 = _a.sent();
+                        throw new Error(err_8);
+                    case 3: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    /**
+     * Simple helper getting a service's dictionary cache key.
+     * @private
+     * @param {string} service
+     * @returns {string}
+     * @memberof OfflineFirstAP
+     */
     OfflineFirstAPI.prototype._getServiceDictionaryKey = function (service) {
         return CACHE_PREFIX + ":dictionary:" + service;
     };
+    /**
+     * Simple helper getting a request's cache key.
+     * @private
+     * @param {string} requestId
+     * @returns {string}
+     * @memberof OfflineFirstAP
+     */
     OfflineFirstAPI.prototype._getCacheObjectKey = function (requestId) {
         return CACHE_PREFIX + ":" + requestId;
     };
+    /**
+     * Resolve each middleware provided and merge them into a single object that will be passed to
+     * the network request.
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {IFetchOptions} [options]
+     * @returns {Promise<any>}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var middlewares, resolvedMiddlewares, err_7;
+            var middlewares, resolvedMiddlewares, err_9;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -309,8 +462,8 @@ var OfflineFirstAPI = (function () {
                         resolvedMiddlewares = _a.sent();
                         return [2 /*return*/, _merge.apply(void 0, resolvedMiddlewares)];
                     case 3:
-                        err_7 = _a.sent();
-                        throw new Error("Error while applying middlewares for " + serviceDefinition.path + " : " + err_7);
+                        err_9 = _a.sent();
+                        throw new Error("Error while applying middlewares for " + serviceDefinition.path + " : " + err_9);
                     case 4: return [3 /*break*/, 6];
                     case 5: return [2 /*return*/, {}];
                     case 6: return [2 /*return*/];
@@ -318,6 +471,14 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
+    /**
+     * Helper returning the full URL of a service and its options.
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {IFetchOptions} [options]
+     * @returns {string}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._constructPath = function (serviceDefinition, options) {
         var domainKey = (options && options.domain) || serviceDefinition.domain;
         var domainURL = this._APIOptions.domains[domainKey];
@@ -326,6 +487,17 @@ var OfflineFirstAPI = (function () {
         var parsedPath = this._parsePath(serviceDefinition, options);
         return domainURL + prefix + '/' + parsedPath;
     };
+    /**
+     * Helper replacing the pathParameters from the service definition's path and appending
+     * any supplied query parameters. For instance :
+     * pathParameters: { articleId: 'xSfdk21' }, queryParameters : { refresh: true, orderBy: 'date' }
+     * http://myapi.tld/article/:articleId => http://myapi.tld/article/xSfdk21?refresh=true&orderBy=date
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {IFetchOptions} [options]
+     * @returns {string}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._parsePath = function (serviceDefinition, options) {
         var path = serviceDefinition.path;
         if (options && options.pathParameters) {
@@ -346,9 +518,24 @@ var OfflineFirstAPI = (function () {
         }
         return path;
     };
+    /**
+     * Merge the supplied API options with the default ones.
+     * @private
+     * @param {IAPIOptions} options
+     * @returns {IAPIOptions}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._mergeAPIOptionsWithDefaultValues = function (options) {
         return __assign({}, DEFAULT_API_OPTIONS, options, { prefixes: __assign({}, DEFAULT_API_OPTIONS.prefixes, (options.prefixes || {})) });
     };
+    /**
+     * For each suppliedservice, map the default service options to it and throw errors if the required
+     * options are missing.
+     * @private
+     * @param {IAPIServices} services
+     * @returns {IAPIServices}
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._mergeServicesWithDefaultValues = function (services) {
         var _this = this;
         return _mapValues(services, function (service, serviceName) {
@@ -363,12 +550,27 @@ var OfflineFirstAPI = (function () {
             return __assign({}, DEFAULT_SERVICE_OPTIONS, service);
         });
     };
+    /**
+     * Debug helper logging every network request.
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {boolean} fetchHeaders
+     * @param {IFetchOptions} [options]
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fetchHeaders, options) {
         if (this._APIOptions.printNetworkRequests) {
             console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + serviceDefinition.path + " " +
                 ("(" + ((options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
         }
     };
+    /**
+     * Debug helper logging every major logic step when user has enabled debugging.
+     * @private
+     * @param {string} msg
+     * @param {*} [value]
+     * @memberof OfflineFirstAPI
+     */
     OfflineFirstAPI.prototype._log = function (msg, value) {
         if (this._APIOptions.debugAPI) {
             if (value) {
@@ -382,7 +584,3 @@ var OfflineFirstAPI = (function () {
     return OfflineFirstAPI;
 }());
 exports.default = OfflineFirstAPI;
-;
-;
-;
-;

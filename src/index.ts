@@ -110,7 +110,33 @@ export default class OfflineFirstAPI {
         }
     }
 
-    public setOptions (options: IAPIOptions) {
+    public async clearCache (service?: string): Promise<void> {
+        this._log(`clearing ${service ? `cache for ${service}` : 'all cache'}...`);
+        try {
+            // Push every key that need to be removed in this array
+            let keysToRemove = [];
+            if (!service) {
+                // Clear everything
+                for (let serviceName in this._APIServices) {
+                    let keysForService = await this._getAllKeysForService(serviceName);
+                    keysToRemove = [...keysToRemove, ...keysForService];
+                }
+            } else {
+                // Clear only the supplied service's dictionary and associated keys
+                if (!this._APIServices[service]) {
+                    throw new Error(`Cannot clear cache for unregistered service : '${service}'`);
+                }
+                keysToRemove = await this._getAllKeysForService(service);
+            }
+            this._log('keys to be removed', keysToRemove);
+            await this._APIDriver.multiRemove(keysToRemove);
+            return;
+        } catch (err) {
+            throw new Error(err);
+        }
+    }
+
+    public setOptions (options: IAPIOptions): void {
         this._APIOptions = this._mergeAPIOptionsWithDefaultValues(options);
         this._log('options set to ', this._APIOptions);
 
@@ -193,6 +219,22 @@ export default class OfflineFirstAPI {
         }
     }
 
+    private async _getAllKeysForService (service: string): Promise<string[]> {
+        try {
+            let keys = [];
+            const serviceDictionaryKey = this._getServiceDictionaryKey(service);
+            keys.push(serviceDictionaryKey);
+            let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
+            if (dictionary) {
+                dictionary = JSON.parse(dictionary);
+                const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${CACHE_PREFIX}:${key}`);
+                keys = [...keys, ...dictionaryKeys];
+            }
+            return keys;
+        } catch (err) {
+            throw new Error(err);
+        }
+    }
     private _getServiceDictionaryKey (service: string): string {
         return `${CACHE_PREFIX}:dictionary:${service}`;
     }
