@@ -4,7 +4,10 @@ Simple, customizable, offline-first API wrapper for react-native.
 
 Easily write offline-first react-native applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver...
 
+## Table of contents
+
 - [react-native-offline-api](#react-native-offline-api)
+    - [Table of contents](#table-of-contents)
     - [Installation](#installation)
     - [How to use](#how-to-use)
         - [Setting up your global API options](#setting-up-your-global-api-options)
@@ -18,6 +21,7 @@ Easily write offline-first react-native applications with your own REST API. Thi
     - [Middlewares](#middlewares)
     - [Using your own driver for caching](#using-your-own-driver-for-caching)
     - [Types](#types)
+    - [Roadmap](#roadmap)
 
 ## Installation
 
@@ -118,7 +122,7 @@ export default class demo extends Component {
 }
 ```
 
-In this short example, we're firing a `GET` request on the path `http://staging.myapi.tld/api/v2/documents/:xSfdk21`. If you don't understand how this path is constructed, see [path and query parameters](#path-and-query-parameters).
+In this short example, we're firing a `GET` request on the path `http://staging.myapi.tld/api/v2/documents/xSfdk21`. If you don't understand how this path is constructed, see [path and query parameters](#path-and-query-parameters).
 
 A couple of notes :
 
@@ -130,7 +134,7 @@ A couple of notes :
 Name | Description | Parameters | Return value
 ------ | ------ | ------ | ------
 `fetch` | Fires a network request to one of your service with additional options, see [fetch options](#fetch-options) | `service: string, options?: IFetchOptions` | `Promise<any>`
-`fetchHeaders` | Just like `fetch` but only returns HTTP headers of the reponse | `service: string, options?: IFetchOptions` | `Promise<any>`
+`fetchHeaders` | Just like `fetch` but only returns the HTTP headers of the reponse | `service: string, options?: IFetchOptions` | `Promise<any>`
 `clearCache` | Clears all the cache, or just the one of a specific service | `service?: string` | `Promise<void>`
 `setOptions` | Sets or update the API options of the wrapper | `options: IAPIOptions` | `void`
 `setServices` | Sets or update your services definitions | `services: IAPIServices` | `void`
@@ -144,12 +148,12 @@ Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `domains` | `{ default: string, [key: string]: string }` | **Required**, full URL to your domains | `domains: {default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },`
 `prefixes` | `{ default: string, [key: string]: string }` | **Required**, prefixes your API uses, `default` is required, leave it blank if you don't have any | `{ default: '/api/v1', apiV2: '/api/v2' }`
-`middlewares` | Optional array of `APIMiddleware`, see [middlewares](#middlewares) | `[authFunc, trackFunc]`
+`middlewares` | `APIMiddleware[]` | Optionnal middlewares, see [middlewares](#middlewares) | `[authFunc, trackFunc]`
 `debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing
 `printNetworkRequests` | `boolean` | Optional, prints all your network requests
 `disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
 `cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter)
-`offlineDriver` | `IAPIDriver` | Optional, See [use your own driver for caching](#use-your-own-driver-for-caching)
+`offlineDriver` | `IAPIDriver` | Optional, see [use your own driver for caching](#use-your-own-driver-for-caching)
 
 ## Services options
 
@@ -159,28 +163,28 @@ Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `path` | `string` | Required path to your endpoint, see [path and query parameters](#path-and-query-parameters) | `article/:articleId`
 `expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes
-`method` | HTTP Methods | Optional HTTP method of your request, defaults to `GET`
+`method` | `'GET' | 'POST' | 'OPTIONS'...` | Optional HTTP method of your request, defaults to `GET`
 `domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option
 `prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option
-`disableCache` | `boolean` | Optional, disables the cache for this service that override your API option
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, , see [middlewares](#middlewares)
+`disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
 
 ## Fetch options
 
-The `options` parameter of the `fetch` methods overrides the configuration you set globally in your API options, and the one you set for your endpoints. This is a good way of making very specific calls without having to declare another service for a single use for instance.
+The `options` parameter of the `fetch` and `fetchHeaders` method overrides the configuration you set globally in your API options, and the one you set for your services definitions. For instance, this is a good way of making very specific calls without having to declare another service just to tweak a single option.
 
-All of these are optional.
+Important notes : 
+
+* All of these are optional.
+* All the keys of [services options](#services-options) can be overriden here ! You could disable caching just for a single call for example, but still having it enabled in your service's definition.
 
 Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `pathParameters` | `{ [key: string]: string }` | Parameters to replace in your path, see [path and query parameters](#path-and-query-parameters) | `{ documentId: 'xSfdk21' }`
 `queryParameters` | `{ [key: string]: string }` | Query parameters that will be appended to your service's path, , see [path and query parameters](#path-and-query-parameters) | `{ refresh: true, orderBy: 'date' }`
 `headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition
-`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch method` so you'll be able to configure anything not provided by the wrapper itself
-
-
-**All the keys of [service options](#service-options) can be overriden here !** You could disable caching just for a single call for example, but still having it enabled in your service's definition.
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares)
+`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself
 
 ## Path and query parameters
 
@@ -196,7 +200,7 @@ Just like for the other request options, **you can provide middlewares at the gl
 
 You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
 
-Anything you will resolved in those promises will be merged into your request's options !
+Anything you will resolve in those promises will be merged into your request's options !
 
 Here's a barebone example :
 
@@ -207,6 +211,7 @@ const API_OPTIONS = {
 };
 
 async function exampleMiddleware (serviceDefinition, serviceOptions) {
+  // This will be printed everytime you call a service
   console.log('You just fired a request for the path ' + serviceDefinition.path);
 }
 ```
@@ -262,3 +267,11 @@ Your custom driver must implement these 3 methods that are promises.
 Every API interfaces [can be seen here](src/interfaces.ts) so you don't need to poke around the parameters in your console to be aware of what's available to you :)
 
 These are Typescript defintions, so they should be displayed in your editor/IDE if it supports it.
+
+## Roadmap
+
+Pull requests are more than welcome for these items, or for any feature that might be missing.
+
+- [ ] Write a demo
+- [ ] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
+- [ ] Add automated testing
