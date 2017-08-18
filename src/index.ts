@@ -2,6 +2,16 @@ import { AsyncStorage } from 'react-native';
 import * as _mapValues from 'lodash.mapvalues';
 import * as _merge from 'lodash.merge';
 import * as sha from 'jssha';
+import {
+    IAPIOptions,
+    IAPIService,
+    IAPIServices,
+    IFetchOptions,
+    IFetchResponse,
+    ICachedData,
+    IAPIDriver,
+    APIMiddleware
+} from './interfaces';
 
 const DEFAULT_API_OPTIONS = {
     debugAPI: false,
@@ -20,8 +30,6 @@ const DEFAULT_SERVICE_OPTIONS = {
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
 const CACHE_PREFIX = 'offlineApiCache:';
-
-// AsyncStorage.clear();
 
 export default class OfflineFirstAPI {
 
@@ -110,7 +118,7 @@ export default class OfflineFirstAPI {
         }
     }
 
-    public async fetchHeaders (service: string, options?: IFetchOptions) {
+    public async fetchHeaders (service: string, options?: IFetchOptions): Promise<any> {
         try {
             return await this.fetch(service, { ...options, fetchHeaders: true });
         } catch (err) {
@@ -180,7 +188,7 @@ export default class OfflineFirstAPI {
         try {
             return { success: true, data: await fetch(url, options) };
         } catch (err) {
-            return { success: false }
+            return { success: false };
         }
     }
 
