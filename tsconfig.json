@@ -13,7 +13,10 @@
         "sourceMap": false,
         "alwaysStrict": true,
         "strictNullChecks": false,
-        "noUnusedLocals": false
+        "noUnusedLocals": false,
+        "types": [
+            "src/index.d.ts"
+        ]
     },
     "include": [
         "src"
