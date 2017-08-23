@@ -59,10 +59,7 @@ export default class OfflineFirstAPI {
                 { headers: (options && options.headers) || {} }
             );
             const fetchHeaders = options && options.fetchHeaders;
-            // Should be cached if : not disabled globally, not disabled for this service definition and not
-            // disabled from the option parameter of fetch ()
-            const shouldCache = !this._APIOptions.disableCache &&
-                !(serviceDefinition.disableCache || (options && options.disableCache));
+            const shouldUseCache = this._shouldUseCache(serviceDefinition, options);
             let requestId;
             let expiration;
 
@@ -77,13 +74,13 @@ export default class OfflineFirstAPI {
             expiration = Date.now() + expirationDelay;
             const cachedData = await this._getCachedData(service, requestId, fullPath);
 
-            if (cachedData.success && cachedData.fresh) {
+            if (cachedData.success && cachedData.fresh && shouldUseCache) {
                 this._log(`Using fresh cache for ${fullPath}`);
                 return cachedData.data;
             }
 
             // Network fetch
-            this._logNetwork(serviceDefinition, fetchHeaders, options);
+            this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options);
             this._log('full URL for request', fullPath);
             this._log('full fetch options for request', fetchOptions);
             let parsedResponseData;
@@ -107,7 +104,7 @@ export default class OfflineFirstAPI {
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
-            if (res.data.ok && shouldCache) {
+            if (res.data.ok && shouldUseCache) {
                 this._cache(service, requestId, parsedResponseData, expiration);
             }
 
@@ -174,7 +171,6 @@ export default class OfflineFirstAPI {
         this._log('custom driver set');
     }
 
-
     /**
      * Simple helper that won't ever throw an error into the stack if the network request
      * isn't successful. This is useful to implement the cache's logic when the API is unreachable.
@@ -191,7 +187,6 @@ export default class OfflineFirstAPI {
             return { success: false };
         }
     }
-
 
     /**
      * Cache the network response for a request. Create the service dictionary if it hasn't been done yet,
@@ -215,7 +210,6 @@ export default class OfflineFirstAPI {
             throw new Error(`Error while caching API response for ${requestId}`);
         }
     }
-
 
     /**
      * Promise that tries to fetch a cached data. Resolves the data if successful and its freshness.
@@ -254,6 +248,27 @@ export default class OfflineFirstAPI {
 
 
     /**
+     * Helper returning if caching should be enabled for a request.
+     * Cache enabling priority :
+     * option parameter of fetch() > service definition > default setting
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {IFetchOptions} options
+     * @returns {boolean}
+     * @memberof OfflineFirstAPI
+     */
+    private _shouldUseCache (serviceDefinition: IAPIService, options: IFetchOptions): boolean {
+        const cacheDisabledFromOptions = options && options.disableCache;
+        if (typeof cacheDisabledFromOptions !== 'undefined') {
+            return !cacheDisabledFromOptions;
+        } else if (typeof serviceDefinition.disableCache !== 'undefined') {
+            return !serviceDefinition.disableCache;
+        } else {
+            return !this._APIOptions.disableCache;
+        }
+    }
+
+    /**
      * Pushes a requestId into a service's dictionary and associate its expiration date to it.
      * @private
      * @param {string} service
@@ -278,7 +293,6 @@ export default class OfflineFirstAPI {
             throw new Error(err);
         }
     }
-
 
     /**
      * Promise that resolves every cache key associated to a service : the service dictionary's name, and all requestId
@@ -305,7 +319,6 @@ export default class OfflineFirstAPI {
         }
     }
 
-
     /**
      * Simple helper getting a service's dictionary cache key.
      * @private
@@ -317,7 +330,6 @@ export default class OfflineFirstAPI {
         return `${CACHE_PREFIX}:dictionary:${service}`;
     }
 
-
     /**
      * Simple helper getting a request's cache key.
      * @private
@@ -328,7 +340,6 @@ export default class OfflineFirstAPI {
     private _getCacheObjectKey (requestId: string): string {
         return `${CACHE_PREFIX}:${requestId}`;
     }
-
 
     /**
      * Resolve each middleware provided and merge them into a single object that will be passed to
@@ -355,7 +366,6 @@ export default class OfflineFirstAPI {
         }
     }
 
-
     /**
      * Helper returning the full URL of a service and its options.
      * @private
@@ -373,7 +383,6 @@ export default class OfflineFirstAPI {
 
         return domainURL + prefix + '/' + parsedPath;
     }
-
 
     /**
      * Helper replacing the pathParameters from the service definition's path and appending
@@ -408,7 +417,6 @@ export default class OfflineFirstAPI {
         return path;
     }
 
-
     /**
      * Merge the supplied API options with the default ones.
      * @private
@@ -426,7 +434,6 @@ export default class OfflineFirstAPI {
             }
         };
     }
-
 
     /**
      * For each suppliedservice, map the default service options to it and throw errors if the required
@@ -457,7 +464,6 @@ export default class OfflineFirstAPI {
         });
     }
 
-
     /**
      * Debug helper logging every network request.
      * @private
@@ -466,16 +472,15 @@ export default class OfflineFirstAPI {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    private _logNetwork (serviceDefinition: IAPIService, fetchHeaders: boolean, options?: IFetchOptions): void {
+    private _logNetwork (serviceDefinition: IAPIService, fullPath: string, fetchHeaders: boolean, options?: IFetchOptions): void {
         if (this._APIOptions.printNetworkRequests) {
             console.log(
-                `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${serviceDefinition.path} ` +
+                `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${fullPath} ` +
                 `(${(options && options.method) || serviceDefinition.method})`,
                 'font-weight: bold; color: blue'
             );
         }
     }
-
 
     /**
      * Debug helper logging every major logic step when user has enabled debugging.
