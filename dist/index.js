@@ -72,7 +72,7 @@ var OfflineFirstAPI = (function () {
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, err_1;
+            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -89,8 +89,7 @@ var OfflineFirstAPI = (function () {
                         middlewares = _a.sent();
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
                         fetchHeaders = options && options.fetchHeaders;
-                        shouldCache = !this._APIOptions.disableCache &&
-                            !(serviceDefinition.disableCache || (options && options.disableCache));
+                        shouldUseCache = this._shouldUseCache(serviceDefinition, options);
                         requestId = void 0;
                         expiration = void 0;
                         _sha = new sha('SHA-1', 'TEXT');
@@ -101,12 +100,12 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
                     case 3:
                         cachedData = _a.sent();
-                        if (cachedData.success && cachedData.fresh) {
+                        if (cachedData.success && cachedData.fresh && shouldUseCache) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
                         }
                         // Network fetch
-                        this._logNetwork(serviceDefinition, fetchHeaders, options);
+                        this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options);
                         this._log('full URL for request', fullPath);
                         this._log('full fetch options for request', fetchOptions);
                         parsedResponseData = void 0;
@@ -133,7 +132,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 7;
                     case 7:
                         // Cache if it hasn't been disabled and if the network request has been successful
-                        if (res.data.ok && shouldCache) {
+                        if (res.data.ok && shouldUseCache) {
                             this._cache(service, requestId, parsedResponseData, expiration);
                         }
                         this._log('parsed network response', parsedResponseData);
@@ -343,6 +342,28 @@ var OfflineFirstAPI = (function () {
                 }
             });
         });
+    };
+    /**
+     * Helper returning if caching should be enabled for a request.
+     * Cache enabling priority :
+     * option parameter of fetch() > service definition > default setting
+     * @private
+     * @param {IAPIService} serviceDefinition
+     * @param {IFetchOptions} options
+     * @returns {boolean}
+     * @memberof OfflineFirstAPI
+     */
+    OfflineFirstAPI.prototype._shouldUseCache = function (serviceDefinition, options) {
+        var cacheDisabledFromOptions = options && options.disableCache;
+        if (typeof cacheDisabledFromOptions !== 'undefined') {
+            return !cacheDisabledFromOptions;
+        }
+        else if (typeof serviceDefinition.disableCache !== 'undefined') {
+            return !serviceDefinition.disableCache;
+        }
+        else {
+            return !this._APIOptions.disableCache;
+        }
     };
     /**
      * Pushes a requestId into a service's dictionary and associate its expiration date to it.
@@ -558,9 +579,9 @@ var OfflineFirstAPI = (function () {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fetchHeaders, options) {
+    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fullPath, fetchHeaders, options) {
         if (this._APIOptions.printNetworkRequests) {
-            console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + serviceDefinition.path + " " +
+            console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + fullPath + " " +
                 ("(" + ((options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
         }
     };
