@@ -466,10 +466,10 @@ export default class OfflineFirstAPI {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    private _logNetwork (serviceDefinition: IAPIService, fetchHeaders: boolean, options?: IFetchOptions): void {
+    private _logNetwork (serviceDefinition: IAPIService, fullPath: string, fetchHeaders: boolean, options?: IFetchOptions): void {
         if (this._APIOptions.printNetworkRequests) {
             console.log(
-                `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${serviceDefinition.path} ` +
+                `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${fullPath} ` +
                 `(${(options && options.method) || serviceDefinition.method})`,
                 'font-weight: bold; color: blue'
             );
