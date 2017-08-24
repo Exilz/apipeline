@@ -46,6 +46,7 @@ export interface ICachedData {
 export interface IAPIDriver {
     getItem(key: string, callback?: (error?: Error, result?: string) => void);
     setItem(key: string, value: string, callback?: (error?: Error) => void);
+    removeItem(key: string, callback?: (error?: Error) => void);
     multiRemove(keys: string[], callback?: (errors?: Error[]) => void);
 }
 
