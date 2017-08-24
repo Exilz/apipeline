@@ -18,7 +18,8 @@ const DEFAULT_API_OPTIONS = {
     prefixes: { default: '/' },
     printNetworkRequests: false,
     disableCache: false,
-    cacheExpiration: 5 * 60 * 1000
+    cacheExpiration: 5 * 60 * 1000,
+    cachePrefix: 'offlineApiCache',
 };
 
 const DEFAULT_SERVICE_OPTIONS = {
@@ -29,7 +30,6 @@ const DEFAULT_SERVICE_OPTIONS = {
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
-const CACHE_PREFIX = 'offlineApiCache:';
 
 export default class OfflineFirstAPI {
 
@@ -310,7 +310,7 @@ export default class OfflineFirstAPI {
             let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
             if (dictionary) {
                 dictionary = JSON.parse(dictionary);
-                const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${CACHE_PREFIX}:${key}`);
+                const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${this._APIOptions.cachePrefix}:${key}`);
                 keys = [...keys, ...dictionaryKeys];
             }
             return keys;
@@ -327,7 +327,7 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAP
      */
     private _getServiceDictionaryKey (service: string): string {
-        return `${CACHE_PREFIX}:dictionary:${service}`;
+        return `${this._APIOptions.cachePrefix}:dictionary:${service}`;
     }
 
     /**
@@ -338,7 +338,7 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAP
      */
     private _getCacheObjectKey (requestId: string): string {
-        return `${CACHE_PREFIX}:${requestId}`;
+        return `${this._APIOptions.cachePrefix}:${requestId}`;
     }
 
     /**
