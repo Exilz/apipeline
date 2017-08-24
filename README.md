@@ -18,6 +18,7 @@ Easily write offline-first react-native applications with your own REST API. Thi
     - [Services options](#services-options)
     - [Fetch options](#fetch-options)
     - [Path and query parameters](#path-and-query-parameters)
+    - [Limiting the size of your cache](#limiting-the-size-of-your-cache)
     - [Middlewares](#middlewares)
     - [Using your own driver for caching](#using-your-own-driver-for-caching)
     - [Types](#types)
@@ -153,6 +154,9 @@ Key | Type | Description | Example
 `printNetworkRequests` | `boolean` | Optional, prints all your network requests
 `disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
 `cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter)
+`cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache`
+`capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
+`capLimit` | `number` | Optional quantity of cached items for each service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `offlineDriver` | `IAPIDriver` | Optional, see [use your own driver for caching](#use-your-own-driver-for-caching)
 
 ## Services options
@@ -168,6 +172,8 @@ Key | Type | Description | Example
 `prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
 `middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, , see [middlewares](#middlewares)
 `disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
+`capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
+`capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 
 ## Fetch options
 
@@ -193,6 +199,14 @@ The URL to your endpoints are being constructed with **your domain name, your op
 * The `pathParameters` will replace the parameters in your service's path. For instance, a request fired with this path : `/documents/:documentId`, and these `pathParameters` : `{ documentId: 'xSfdk21' }` will become `/documents/xSfdk21`.
 
 * The `queryParameters` are regular query string parameters. For instance, a request fired with this path : `/weather` and these `queryParameters` : `{ days: 'mon,tue,sun', location: 'Paris,France' }` will become `/weather?days=mon,tue,sun&location=Paris,France`.
+
+## Limiting the size of your cache
+
+If you fear your cache will keep growing, you have some options to make sure it doesn't get too big.
+
+First, you can use the `clearCache` method to empty all stored data, or just a service's items. You might want to implement a button in your interface to give your users the ability to clear it whenever they want if they feel like their app is starting to take too much space.
+
+The other solution would be to use the capping option. If you set `capServices` to true in your [API options](#api-options), or `capService` in your [service options](#services-options), the wrapper will make sure it never stores more items that the amount you configured in `capLimit`. This is a good way to restrict the size of stored data for sensitive services, while leaving some of them uncapped. Capping is disabled by default.
 
 ## Middlewares
 
@@ -258,6 +272,7 @@ Your custom driver must implement these 3 methods that are promises.
 
 * `getItem(key: string, callback?: (error?: Error, result?: string) => void)`
 * `setItem(key: string, value: string, callback?: (error?: Error) => void);`
+* `removeItem(key: string, callback?: (error?: Error) => void);`
 * `multiRemove(keys: string[], callback?: (errors?: Error[]) => void);`
 
 *Please note that, as of the 1.0 release, this hasn't been tested thoroughly.*
@@ -273,5 +288,7 @@ These are Typescript defintions, so they should be displayed in your editor/IDE 
 Pull requests are more than welcome for these items, or for any feature that might be missing.
 
 - [ ] Write a demo
+- [ ] Improve capping performance by storing how many items are cached for each service so we don't have to parse the whole service's dictionary each time
+- [ ] Add a method to check for the total size of the cache, which would be useful to trigger a clearing if it reaches a certain size
 - [ ] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
 - [ ] Add automated testing
