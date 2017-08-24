@@ -6,6 +6,9 @@ export interface IAPIOptions {
     printNetworkRequests?: boolean;
     disableCache?: boolean;
     cacheExpiration?: number;
+    cachePrefix?: string;
+    capServices?: boolean;
+    capLimit?: number;
     offlineDriver: IAPIDriver;
 };
 
@@ -17,6 +20,8 @@ export interface IAPIService {
     prefix?: string;
     middlewares?: APIMiddleware[];
     disableCache?: boolean;
+    capService?: boolean;
+    capLimit?: number;
 };
 
 export interface IAPIServices {
@@ -41,6 +46,10 @@ export interface ICachedData {
     success: boolean;
     data?: any;
     fresh?: boolean;
+}
+
+export interface ICacheDictionary {
+    [key: string]: number;
 }
 
 export interface IAPIDriver {
