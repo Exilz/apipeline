@@ -86,7 +86,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 8, , 9]);
-                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, options)];
+                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, fullPath, options)];
                     case 2:
                         middlewares = _a.sent();
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
@@ -512,7 +512,7 @@ var OfflineFirstAPI = (function () {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, options) {
+    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, fullPath, options) {
         return __awaiter(this, void 0, void 0, function () {
             var middlewares, resolvedMiddlewares, err_9;
             return __generator(this, function (_a) {
@@ -523,7 +523,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, options); });
+                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, fullPath, options); });
                         return [4 /*yield*/, Promise.all(middlewares)];
                     case 2:
                         resolvedMiddlewares = _a.sent();

@@ -212,7 +212,7 @@ The other solution would be to use the capping option. If you set `capServices` 
 
 Just like for the other request options, **you can provide middlewares at the global level in your API options, at the service's definition level, or in the `options` parameter of the `fetch` method.**
 
-You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
+You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, fullPath: string, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
 
 Anything you will resolve in those promises will be merged into your request's options !
 

@@ -54,7 +54,7 @@ export default class OfflineFirstAPI {
         const fullPath = this._constructPath(serviceDefinition, options);
 
         try {
-            const middlewares = await this._applyMiddlewares(serviceDefinition, options);
+            const middlewares = await this._applyMiddlewares(serviceDefinition, fullPath, options);
             const fetchOptions = _merge(
                 middlewares,
                 (options && options.fetchOptions) || {},
@@ -405,12 +405,12 @@ export default class OfflineFirstAPI {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    private async _applyMiddlewares (serviceDefinition: IAPIService, options?: IFetchOptions): Promise<any> {
+    private async _applyMiddlewares (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
         if (middlewares.length) {
             try {
-                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, options));
+                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, fullPath, options));
                 const resolvedMiddlewares = await Promise.all(middlewares);
                 return _merge(...resolvedMiddlewares);
             } catch (err) {
