@@ -9,6 +9,7 @@ Easily write offline-first react-native applications with your own REST API. Thi
 - [react-native-offline-api](#react-native-offline-api)
     - [Table of contents](#table-of-contents)
     - [Installation](#installation)
+    - [How does it work ?](#how-does-it-work)
     - [How to use](#how-to-use)
         - [Setting up your global API options](#setting-up-your-global-api-options)
         - [Declaring your services definitions](#declaring-your-services-definitions)
@@ -30,6 +31,11 @@ Easily write offline-first react-native applications with your own REST API. Thi
 npm install --save react-native-offline-api # with npm
 yarn add react-native-offline-api # with yarn
 ```
+
+## How does it work ?
+
+<p align="center"><a href="http://i.imgur.com/SBm5Xhj.png"><img src="http://i.imgur.com/TO1sGZU.png"/></a></p>
+<p align="center"><em>click to enlarge</em></p>
 
 ## How to use
 
