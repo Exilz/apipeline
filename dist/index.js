@@ -52,7 +52,10 @@ var DEFAULT_API_OPTIONS = {
     prefixes: { default: '/' },
     printNetworkRequests: false,
     disableCache: false,
-    cacheExpiration: 5 * 60 * 1000
+    cacheExpiration: 5 * 60 * 1000,
+    cachePrefix: 'offlineApiCache',
+    capServices: false,
+    capLimit: 50
 };
 var DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
@@ -61,7 +64,6 @@ var DEFAULT_SERVICE_OPTIONS = {
     disableCache: false
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
-var CACHE_PREFIX = 'offlineApiCache:';
 var OfflineFirstAPI = (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
@@ -84,7 +86,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 8, , 9]);
-                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, options)];
+                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, fullPath, options)];
                     case 2:
                         middlewares = _a.sent();
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
@@ -133,7 +135,7 @@ var OfflineFirstAPI = (function () {
                     case 7:
                         // Cache if it hasn't been disabled and if the network request has been successful
                         if (res.data.ok && shouldUseCache) {
-                            this._cache(service, requestId, parsedResponseData, expiration);
+                            this._cache(serviceDefinition, service, requestId, parsedResponseData, expiration);
                         }
                         this._log('parsed network response', parsedResponseData);
                         return [2 /*return*/, parsedResponseData];
@@ -268,16 +270,19 @@ var OfflineFirstAPI = (function () {
      * @returns {(Promise<void|boolean>)}
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._cache = function (service, requestId, response, expiration) {
+    OfflineFirstAPI.prototype._cache = function (serviceDefinition, service, requestId, response, expiration) {
         return __awaiter(this, void 0, void 0, function () {
-            var err_5;
+            var shouldCap, capLimit, serviceDictionaryKey, dictionary, cachedItemsCount, key, err_5;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this._log("Caching " + requestId + " ...");
+                        shouldCap = typeof serviceDefinition.capService !== 'undefined' ?
+                            serviceDefinition.capService :
+                            this._APIOptions.capServices;
                         _a.label = 1;
                     case 1:
-                        _a.trys.push([1, 4, , 5]);
+                        _a.trys.push([1, 7, , 8]);
+                        this._log("Caching " + requestId + " ...");
                         return [4 /*yield*/, this._addKeyToServiceDictionary(service, requestId, expiration)];
                     case 2:
                         _a.sent();
@@ -285,11 +290,29 @@ var OfflineFirstAPI = (function () {
                     case 3:
                         _a.sent();
                         this._log("Updated cache for request " + requestId);
-                        return [2 /*return*/, true];
+                        if (!shouldCap) return [3 /*break*/, 6];
+                        capLimit = serviceDefinition.capLimit || this._APIOptions.capLimit;
+                        serviceDictionaryKey = this._getServiceDictionaryKey(service);
+                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
                     case 4:
+                        dictionary = _a.sent();
+                        if (!dictionary) return [3 /*break*/, 6];
+                        dictionary = JSON.parse(dictionary);
+                        cachedItemsCount = Object.keys(dictionary).length;
+                        if (!(cachedItemsCount > capLimit)) return [3 /*break*/, 6];
+                        this._log("service " + service + " cap reached (" + cachedItemsCount + " / " + capLimit + "), removing the oldest cached item...");
+                        key = this._getOldestCachedItem(dictionary).key;
+                        delete dictionary[key];
+                        return [4 /*yield*/, this._APIDriver.removeItem(key)];
+                    case 5:
+                        _a.sent();
+                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        _a.label = 6;
+                    case 6: return [2 /*return*/, true];
+                    case 7:
                         err_5 = _a.sent();
                         throw new Error("Error while caching API response for " + requestId);
-                    case 5: return [2 /*return*/];
+                    case 8: return [2 /*return*/];
                 }
             });
         });
@@ -403,6 +426,28 @@ var OfflineFirstAPI = (function () {
         });
     };
     /**
+     * Returns the key and the expiration date of the oldest cached item of a cache dictionary
+     * @private
+     * @param {ICacheDictionary} dictionary
+     * @returns {*}
+     * @memberof OfflineFirstAPI
+     */
+    OfflineFirstAPI.prototype._getOldestCachedItem = function (dictionary) {
+        var oldest;
+        for (var key in dictionary) {
+            var keyExpiration = dictionary[key];
+            if (oldest) {
+                if (keyExpiration < oldest.expiration) {
+                    oldest = { key: key, expiration: keyExpiration };
+                }
+            }
+            else {
+                oldest = { key: key, expiration: keyExpiration };
+            }
+        }
+        return oldest;
+    };
+    /**
      * Promise that resolves every cache key associated to a service : the service dictionary's name, and all requestId
      * stored. This is useful to clear the cache without affecting the user's stored data not related to this API.
      * @private
@@ -412,6 +457,7 @@ var OfflineFirstAPI = (function () {
      */
     OfflineFirstAPI.prototype._getAllKeysForService = function (service) {
         return __awaiter(this, void 0, void 0, function () {
+            var _this = this;
             var keys, serviceDictionaryKey, dictionary, dictionaryKeys, err_8;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -425,7 +471,7 @@ var OfflineFirstAPI = (function () {
                         dictionary = _a.sent();
                         if (dictionary) {
                             dictionary = JSON.parse(dictionary);
-                            dictionaryKeys = Object.keys(dictionary).map(function (key) { return CACHE_PREFIX + ":" + key; });
+                            dictionaryKeys = Object.keys(dictionary).map(function (key) { return _this._APIOptions.cachePrefix + ":" + key; });
                             keys = keys.concat(dictionaryKeys);
                         }
                         return [2 /*return*/, keys];
@@ -445,7 +491,7 @@ var OfflineFirstAPI = (function () {
      * @memberof OfflineFirstAP
      */
     OfflineFirstAPI.prototype._getServiceDictionaryKey = function (service) {
-        return CACHE_PREFIX + ":dictionary:" + service;
+        return this._APIOptions.cachePrefix + ":dictionary:" + service;
     };
     /**
      * Simple helper getting a request's cache key.
@@ -455,7 +501,7 @@ var OfflineFirstAPI = (function () {
      * @memberof OfflineFirstAP
      */
     OfflineFirstAPI.prototype._getCacheObjectKey = function (requestId) {
-        return CACHE_PREFIX + ":" + requestId;
+        return this._APIOptions.cachePrefix + ":" + requestId;
     };
     /**
      * Resolve each middleware provided and merge them into a single object that will be passed to
@@ -466,7 +512,7 @@ var OfflineFirstAPI = (function () {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, options) {
+    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, fullPath, options) {
         return __awaiter(this, void 0, void 0, function () {
             var middlewares, resolvedMiddlewares, err_9;
             return __generator(this, function (_a) {
@@ -477,7 +523,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, options); });
+                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, fullPath, options); });
                         return [4 /*yield*/, Promise.all(middlewares)];
                     case 2:
                         resolvedMiddlewares = _a.sent();

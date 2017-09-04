@@ -9,6 +9,7 @@ import {
     IFetchOptions,
     IFetchResponse,
     ICachedData,
+    ICacheDictionary,
     IAPIDriver,
     APIMiddleware
 } from './interfaces';
@@ -18,7 +19,10 @@ const DEFAULT_API_OPTIONS = {
     prefixes: { default: '/' },
     printNetworkRequests: false,
     disableCache: false,
-    cacheExpiration: 5 * 60 * 1000
+    cacheExpiration: 5 * 60 * 1000,
+    cachePrefix: 'offlineApiCache',
+    capServices: false,
+    capLimit: 50
 };
 
 const DEFAULT_SERVICE_OPTIONS = {
@@ -29,7 +33,6 @@ const DEFAULT_SERVICE_OPTIONS = {
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
-const CACHE_PREFIX = 'offlineApiCache:';
 
 export default class OfflineFirstAPI {
 
@@ -51,7 +54,7 @@ export default class OfflineFirstAPI {
         const fullPath = this._constructPath(serviceDefinition, options);
 
         try {
-            const middlewares = await this._applyMiddlewares(serviceDefinition, options);
+            const middlewares = await this._applyMiddlewares(serviceDefinition, fullPath, options);
             const fetchOptions = _merge(
                 middlewares,
                 (options && options.fetchOptions) || {},
@@ -105,7 +108,7 @@ export default class OfflineFirstAPI {
 
             // Cache if it hasn't been disabled and if the network request has been successful
             if (res.data.ok && shouldUseCache) {
-                this._cache(service, requestId, parsedResponseData, expiration);
+                this._cache(serviceDefinition, service, requestId, parsedResponseData, expiration);
             }
 
             this._log('parsed network response', parsedResponseData);
@@ -199,12 +202,41 @@ export default class OfflineFirstAPI {
      * @returns {(Promise<void|boolean>)}
      * @memberof OfflineFirstAPI
      */
-    private async _cache (service: string, requestId: string, response: any, expiration: number): Promise<void|boolean> {
-        this._log(`Caching ${requestId} ...`);
+    private async _cache (
+        serviceDefinition: IAPIService,
+        service: string, requestId: string,
+        response: any, expiration: number
+    ): Promise<void|boolean> {
+        const shouldCap =
+            typeof serviceDefinition.capService !== 'undefined' ?
+            serviceDefinition.capService :
+            this._APIOptions.capServices;
+
         try {
+            this._log(`Caching ${requestId} ...`);
             await this._addKeyToServiceDictionary(service, requestId, expiration);
             await this._APIDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response));
             this._log(`Updated cache for request ${requestId}`);
+
+            // If capping is enabled for this request, get the service's dictionary cached items.
+            // If cap is reached, get the oldest cached item and remove it.
+            if (shouldCap) {
+                const capLimit = serviceDefinition.capLimit || this._APIOptions.capLimit;
+                const serviceDictionaryKey = this._getServiceDictionaryKey(service);
+                let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
+                if (dictionary) {
+                    dictionary = JSON.parse(dictionary);
+                    const cachedItemsCount = Object.keys(dictionary).length;
+                    if (cachedItemsCount > capLimit) {
+                        this._log(`service ${service} cap reached (${cachedItemsCount} / ${capLimit}), removing the oldest cached item...`);
+                        const { key } = this._getOldestCachedItem(dictionary);
+                        delete dictionary[key];
+                        await this._APIDriver.removeItem(key);
+                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                    }
+                }
+            }
+
             return true;
         } catch (err) {
             throw new Error(`Error while caching API response for ${requestId}`);
@@ -294,6 +326,29 @@ export default class OfflineFirstAPI {
         }
     }
 
+
+    /**
+     * Returns the key and the expiration date of the oldest cached item of a cache dictionary
+     * @private
+     * @param {ICacheDictionary} dictionary
+     * @returns {*}
+     * @memberof OfflineFirstAPI
+     */
+    private _getOldestCachedItem (dictionary: ICacheDictionary): any {
+        let oldest;
+        for (let key in dictionary) {
+            const keyExpiration: number = dictionary[key];
+            if (oldest) {
+                if (keyExpiration < oldest.expiration) {
+                    oldest = { key, expiration: keyExpiration };
+                }
+            } else {
+                oldest = { key, expiration: keyExpiration };
+            }
+        }
+        return oldest;
+    }
+
     /**
      * Promise that resolves every cache key associated to a service : the service dictionary's name, and all requestId
      * stored. This is useful to clear the cache without affecting the user's stored data not related to this API.
@@ -310,7 +365,7 @@ export default class OfflineFirstAPI {
             let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
             if (dictionary) {
                 dictionary = JSON.parse(dictionary);
-                const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${CACHE_PREFIX}:${key}`);
+                const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${this._APIOptions.cachePrefix}:${key}`);
                 keys = [...keys, ...dictionaryKeys];
             }
             return keys;
@@ -327,7 +382,7 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAP
      */
     private _getServiceDictionaryKey (service: string): string {
-        return `${CACHE_PREFIX}:dictionary:${service}`;
+        return `${this._APIOptions.cachePrefix}:dictionary:${service}`;
     }
 
     /**
@@ -338,7 +393,7 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAP
      */
     private _getCacheObjectKey (requestId: string): string {
-        return `${CACHE_PREFIX}:${requestId}`;
+        return `${this._APIOptions.cachePrefix}:${requestId}`;
     }
 
     /**
@@ -350,12 +405,12 @@ export default class OfflineFirstAPI {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    private async _applyMiddlewares (serviceDefinition: IAPIService, options?: IFetchOptions): Promise<any> {
+    private async _applyMiddlewares (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
         if (middlewares.length) {
             try {
-                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, options));
+                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, fullPath, options));
                 const resolvedMiddlewares = await Promise.all(middlewares);
                 return _merge(...resolvedMiddlewares);
             } catch (err) {

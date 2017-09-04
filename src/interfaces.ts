@@ -6,6 +6,9 @@ export interface IAPIOptions {
     printNetworkRequests?: boolean;
     disableCache?: boolean;
     cacheExpiration?: number;
+    cachePrefix?: string;
+    capServices?: boolean;
+    capLimit?: number;
     offlineDriver: IAPIDriver;
 };
 
@@ -17,6 +20,8 @@ export interface IAPIService {
     prefix?: string;
     middlewares?: APIMiddleware[];
     disableCache?: boolean;
+    capService?: boolean;
+    capLimit?: number;
 };
 
 export interface IAPIServices {
@@ -43,10 +48,15 @@ export interface ICachedData {
     fresh?: boolean;
 }
 
+export interface ICacheDictionary {
+    [key: string]: number;
+}
+
 export interface IAPIDriver {
     getItem(key: string, callback?: (error?: Error, result?: string) => void);
     setItem(key: string, value: string, callback?: (error?: Error) => void);
+    removeItem(key: string, callback?: (error?: Error) => void);
     multiRemove(keys: string[], callback?: (errors?: Error[]) => void);
 }
 
-export type APIMiddleware = (serviceDefinition: IAPIService, options: IFetchOptions) => any;
+export type APIMiddleware = (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions) => any;
