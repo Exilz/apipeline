@@ -519,7 +519,7 @@ var OfflineFirstAPI = (function () {
                 switch (_a.label) {
                     case 0:
                         middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
-                        if (!middlewares.length) return [3 /*break*/, 5];
+                        if (!(middlewares && middlewares.length)) return [3 /*break*/, 5];
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);

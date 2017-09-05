@@ -408,7 +408,7 @@ export default class OfflineFirstAPI {
     private async _applyMiddlewares (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
-        if (middlewares.length) {
+        if (middlewares && middlewares.length) {
             try {
                 middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, fullPath, options));
                 const resolvedMiddlewares = await Promise.all(middlewares);
