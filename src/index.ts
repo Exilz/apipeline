@@ -28,8 +28,7 @@ const DEFAULT_API_OPTIONS = {
 const DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
     domain: 'default',
-    prefix: 'default',
-    disableCache: false
+    prefix: 'default'
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
@@ -290,10 +289,9 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAPI
      */
     private _shouldUseCache (serviceDefinition: IAPIService, options: IFetchOptions): boolean {
-        const cacheDisabledFromOptions = options && options.disableCache;
-        if (typeof cacheDisabledFromOptions !== 'undefined') {
-            return !cacheDisabledFromOptions;
-        } else if (typeof serviceDefinition.disableCache !== 'undefined') {
+        if (options && typeof options.disableCache !== 'undefined') {
+            return !options.disableCache;
+        } else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
             return !serviceDefinition.disableCache;
         } else {
             return !this._APIOptions.disableCache;
