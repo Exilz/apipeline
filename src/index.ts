@@ -498,13 +498,13 @@ export default class OfflineFirstAPI {
      */
     private _mergeServicesWithDefaultValues (services: IAPIServices): IAPIServices {
         return _mapValues(services, (service: IAPIService, serviceName: string) => {
-            if (service.domain && !this._APIOptions.domains[service.domain]) {
+            if (service.domain && typeof this._APIOptions.domains[service.domain] === 'undefined') {
                 throw new Error(
                     `Domain key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'
                 );
             }
-            if (service.prefix && !this._APIOptions.prefixes[service.prefix]) {
+            if (service.prefix && typeof this._APIOptions.prefixes[service.prefix] === 'undefined') {
                 throw new Error(
                     `Prefix key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'
