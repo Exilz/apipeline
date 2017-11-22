@@ -22,6 +22,7 @@ export interface IAPIService {
     disableCache?: boolean;
     capService?: boolean;
     capLimit?: number;
+    rawData?: boolean;
 };
 
 export interface IAPIServices {

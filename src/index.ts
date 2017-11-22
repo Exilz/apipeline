@@ -102,7 +102,7 @@ export default class OfflineFirstAPI {
             if (fetchHeaders) {
                 parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
             } else {
-                parsedResponseData = await res.data.json();
+                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ? res.data : await res.data.json();
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
