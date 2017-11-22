@@ -28,8 +28,7 @@ const DEFAULT_API_OPTIONS = {
 const DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
     domain: 'default',
-    prefix: 'default',
-    disableCache: false
+    prefix: 'default'
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
@@ -103,7 +102,7 @@ export default class OfflineFirstAPI {
             if (fetchHeaders) {
                 parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
             } else {
-                parsedResponseData = await res.data.json();
+                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ? res.data : await res.data.json();
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
@@ -290,10 +289,9 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAPI
      */
     private _shouldUseCache (serviceDefinition: IAPIService, options: IFetchOptions): boolean {
-        const cacheDisabledFromOptions = options && options.disableCache;
-        if (typeof cacheDisabledFromOptions !== 'undefined') {
-            return !cacheDisabledFromOptions;
-        } else if (typeof serviceDefinition.disableCache !== 'undefined') {
+        if (options && typeof options.disableCache !== 'undefined') {
+            return !options.disableCache;
+        } else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
             return !serviceDefinition.disableCache;
         } else {
             return !this._APIOptions.disableCache;
@@ -500,13 +498,13 @@ export default class OfflineFirstAPI {
      */
     private _mergeServicesWithDefaultValues (services: IAPIServices): IAPIServices {
         return _mapValues(services, (service: IAPIService, serviceName: string) => {
-            if (service.domain && !this._APIOptions.domains[service.domain]) {
+            if (service.domain && typeof this._APIOptions.domains[service.domain] === 'undefined') {
                 throw new Error(
                     `Domain key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'
                 );
             }
-            if (service.prefix && !this._APIOptions.prefixes[service.prefix]) {
+            if (service.prefix && typeof this._APIOptions.prefixes[service.prefix] === 'undefined') {
                 throw new Error(
                     `Prefix key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'

@@ -60,8 +60,7 @@ var DEFAULT_API_OPTIONS = {
 var DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
     domain: 'default',
-    prefix: 'default',
-    disableCache: false
+    prefix: 'default'
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
 var OfflineFirstAPI = (function () {
@@ -74,21 +73,21 @@ var OfflineFirstAPI = (function () {
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, err_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, _a, err_1;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         serviceDefinition = this._APIServices[service];
                         if (!serviceDefinition) {
                             throw new Error("Cannot fetch data from unregistered service '" + service + "'");
                         }
                         fullPath = this._constructPath(serviceDefinition, options);
-                        _a.label = 1;
+                        _b.label = 1;
                     case 1:
-                        _a.trys.push([1, 8, , 9]);
+                        _b.trys.push([1, 10, , 11]);
                         return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, fullPath, options)];
                     case 2:
-                        middlewares = _a.sent();
+                        middlewares = _b.sent();
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
                         fetchHeaders = options && options.fetchHeaders;
                         shouldUseCache = this._shouldUseCache(serviceDefinition, options);
@@ -101,7 +100,7 @@ var OfflineFirstAPI = (function () {
                         expiration = Date.now() + expirationDelay;
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
                     case 3:
-                        cachedData = _a.sent();
+                        cachedData = _b.sent();
                         if (cachedData.success && cachedData.fresh && shouldUseCache) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
@@ -113,7 +112,7 @@ var OfflineFirstAPI = (function () {
                         parsedResponseData = void 0;
                         return [4 /*yield*/, this._fetch(fullPath, fetchOptions)];
                     case 4:
-                        res = _a.sent();
+                        res = _b.sent();
                         // If the network request fails, return the cached data if it's valid, a throw an error
                         if (!res.success) {
                             if (cachedData.success && cachedData.data) {
@@ -127,22 +126,29 @@ var OfflineFirstAPI = (function () {
                         this._log('raw network response', res);
                         if (!fetchHeaders) return [3 /*break*/, 5];
                         parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
-                        return [3 /*break*/, 7];
-                    case 5: return [4 /*yield*/, res.data.json()];
-                    case 6:
-                        parsedResponseData = _a.sent();
-                        _a.label = 7;
+                        return [3 /*break*/, 9];
+                    case 5:
+                        if (!((options && options.rawData) || serviceDefinition.rawData)) return [3 /*break*/, 6];
+                        _a = res.data;
+                        return [3 /*break*/, 8];
+                    case 6: return [4 /*yield*/, res.data.json()];
                     case 7:
+                        _a = _b.sent();
+                        _b.label = 8;
+                    case 8:
+                        parsedResponseData = _a;
+                        _b.label = 9;
+                    case 9:
                         // Cache if it hasn't been disabled and if the network request has been successful
                         if (res.data.ok && shouldUseCache) {
                             this._cache(serviceDefinition, service, requestId, parsedResponseData, expiration);
                         }
                         this._log('parsed network response', parsedResponseData);
                         return [2 /*return*/, parsedResponseData];
-                    case 8:
-                        err_1 = _a.sent();
+                    case 10:
+                        err_1 = _b.sent();
                         throw new Error(err_1);
-                    case 9: return [2 /*return*/];
+                    case 11: return [2 /*return*/];
                 }
             });
         });
@@ -377,11 +383,10 @@ var OfflineFirstAPI = (function () {
      * @memberof OfflineFirstAPI
      */
     OfflineFirstAPI.prototype._shouldUseCache = function (serviceDefinition, options) {
-        var cacheDisabledFromOptions = options && options.disableCache;
-        if (typeof cacheDisabledFromOptions !== 'undefined') {
-            return !cacheDisabledFromOptions;
+        if (options && typeof options.disableCache !== 'undefined') {
+            return !options.disableCache;
         }
-        else if (typeof serviceDefinition.disableCache !== 'undefined') {
+        else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
             return !serviceDefinition.disableCache;
         }
         else {
@@ -606,11 +611,11 @@ var OfflineFirstAPI = (function () {
     OfflineFirstAPI.prototype._mergeServicesWithDefaultValues = function (services) {
         var _this = this;
         return _mapValues(services, function (service, serviceName) {
-            if (service.domain && !_this._APIOptions.domains[service.domain]) {
+            if (service.domain && typeof _this._APIOptions.domains[service.domain] === 'undefined') {
                 throw new Error("Domain key " + service.domain + " specified for service " + serviceName + " hasn't been declared. \n" +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.');
             }
-            if (service.prefix && !_this._APIOptions.prefixes[service.prefix]) {
+            if (service.prefix && typeof _this._APIOptions.prefixes[service.prefix] === 'undefined') {
                 throw new Error("Prefix key " + service.domain + " specified for service " + serviceName + " hasn't been declared. \n" +
                     'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.');
             }

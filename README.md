@@ -9,7 +9,7 @@ Easily write offline-first react-native applications with your own REST API. Thi
 - [react-native-offline-api](#react-native-offline-api)
     - [Table of contents](#table-of-contents)
     - [Installation](#installation)
-    - [How does it work ?](#how-does-it-work)
+    - [How it works](#how-it-works)
     - [How to use](#how-to-use)
         - [Setting up your global API options](#setting-up-your-global-api-options)
         - [Declaring your services definitions](#declaring-your-services-definitions)
@@ -32,7 +32,7 @@ npm install --save react-native-offline-api # with npm
 yarn add react-native-offline-api # with yarn
 ```
 
-## How does it work ?
+## How it works
 
 <p align="center"><a href="http://i.imgur.com/SBm5Xhj.png"><img src="http://i.imgur.com/TO1sGZU.png"/></a></p>
 <p align="center"><em>click to enlarge</em></p>
@@ -173,13 +173,14 @@ Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `path` | `string` | Required path to your endpoint, see [path and query parameters](#path-and-query-parameters) | `article/:articleId`
 `expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes
-`method` | `'GET' | 'POST' | 'OPTIONS'...` | Optional HTTP method of your request, defaults to `GET`
+`method` | `GET` | Optional HTTP method of your request, defaults to `GET` | `OPTIONS...`
 `domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option
 `prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
 `middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, , see [middlewares](#middlewares)
 `disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
 `capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
+`rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api
 
 ## Fetch options
 
@@ -293,7 +294,7 @@ These are Typescript defintions, so they should be displayed in your editor/IDE 
 
 Pull requests are more than welcome for these items, or for any feature that might be missing.
 
-- [ ] Write a demo
+- [x] Write a demo
 - [ ] Improve capping performance by storing how many items are cached for each service so we don't have to parse the whole service's dictionary each time
 - [ ] Add a method to check for the total size of the cache, which would be useful to trigger a clearing if it reaches a certain size
 - [ ] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
