@@ -454,6 +454,9 @@ export default class OfflineFirstAPI {
         if (options && options.pathParameters) {
             const { pathParameters } = options;
             for (let i in pathParameters) {
+                if (typeof pathParameters[i] === 'undefined') {
+                    continue;
+                }
                 path = path.replace(`:${i}`, pathParameters[i]);
             }
         }
@@ -461,7 +464,10 @@ export default class OfflineFirstAPI {
             const { queryParameters } = options;
             let insertedQueryParameters = 0;
             for (let i in queryParameters) {
-                path += insertedQueryParameters === 0 ?
+                if (typeof queryParameters[i] === 'undefined') {
+                    continue;
+                }
+                parsedQueryParameters += insertedQueryParameters === 0 ?
                     `?${i}=${queryParameters[i]}` :
                     `&${i}=${queryParameters[i]}`;
                 insertedQueryParameters++;
