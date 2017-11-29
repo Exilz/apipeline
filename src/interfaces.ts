@@ -60,4 +60,9 @@ export interface IAPIDriver {
     multiRemove(keys: string[], callback?: (errors?: Error[]) => void);
 }
 
-export type APIMiddleware = (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions) => any;
+export interface IMiddlewarePaths {
+    fullPath: string;
+    withoutQueryParams: string;
+}
+
+export type APIMiddleware = (serviceDefinition: IAPIService, paths: IMiddlewarePaths, options?: IFetchOptions) => any;

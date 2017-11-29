@@ -11,7 +11,8 @@ import {
     ICachedData,
     ICacheDictionary,
     IAPIDriver,
-    APIMiddleware
+    APIMiddleware,
+    IMiddlewarePaths
 } from './interfaces';
 
 const DEFAULT_API_OPTIONS = {
@@ -50,10 +51,14 @@ export default class OfflineFirstAPI {
         if (!serviceDefinition) {
             throw new Error(`Cannot fetch data from unregistered service '${service}'`);
         }
-        const fullPath = this._constructPath(serviceDefinition, options);
+        const { fullPath, withoutQueryParams } = this._constructPath(serviceDefinition, options);
 
         try {
-            const middlewares = await this._applyMiddlewares(serviceDefinition, fullPath, options);
+            const middlewares = await this._applyMiddlewares(
+                serviceDefinition,
+                { fullPath, withoutQueryParams },
+                options
+            );
             const fetchOptions = _merge(
                 middlewares,
                 (options && options.fetchOptions) || {},
@@ -203,8 +208,10 @@ export default class OfflineFirstAPI {
      */
     private async _cache (
         serviceDefinition: IAPIService,
-        service: string, requestId: string,
-        response: any, expiration: number
+        service: string,
+        requestId: string,
+        response: any,
+        expiration: number
     ): Promise<void|boolean> {
         const shouldCap =
             typeof serviceDefinition.capService !== 'undefined' ?
@@ -403,12 +410,12 @@ export default class OfflineFirstAPI {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    private async _applyMiddlewares (serviceDefinition: IAPIService, fullPath: string, options?: IFetchOptions): Promise<any> {
+    private async _applyMiddlewares (serviceDefinition: IAPIService, paths: IMiddlewarePaths, options?: IFetchOptions): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
         if (middlewares && middlewares.length) {
             try {
-                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, fullPath, options));
+                middlewares = middlewares.map((middleware: APIMiddleware) => middleware(serviceDefinition, paths, options));
                 const resolvedMiddlewares = await Promise.all(middlewares);
                 return _merge(...resolvedMiddlewares);
             } catch (err) {
@@ -427,14 +434,18 @@ export default class OfflineFirstAPI {
      * @returns {string}
      * @memberof OfflineFirstAPI
      */
-    private _constructPath (serviceDefinition: IAPIService, options?: IFetchOptions): string {
+    private _constructPath (serviceDefinition: IAPIService, options?: IFetchOptions): IMiddlewarePaths {
         const domainKey = (options && options.domain) || serviceDefinition.domain;
         const domainURL = this._APIOptions.domains[domainKey];
         const prefixKey = (options && options.prefix) || serviceDefinition.prefix;
         const prefix = this._APIOptions.prefixes[prefixKey];
-        const parsedPath = this._parsePath(serviceDefinition, options);
+        const { fullyParsed, withoutQueryParams } = this._parsePath(serviceDefinition, options);
+        const urlRoot = domainURL + prefix + '/';
 
-        return domainURL + prefix + '/' + parsedPath;
+        return {
+            fullPath: urlRoot + fullyParsed,
+            withoutQueryParams: urlRoot + withoutQueryParams
+        };
     }
 
     /**
@@ -448,8 +459,9 @@ export default class OfflineFirstAPI {
      * @returns {string}
      * @memberof OfflineFirstAPI
      */
-    private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): string {
+    private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): any {
         let path = serviceDefinition.path;
+        let parsedQueryParameters = '';
 
         if (options && options.pathParameters) {
             const { pathParameters } = options;
@@ -473,7 +485,10 @@ export default class OfflineFirstAPI {
                 insertedQueryParameters++;
             }
         }
-        return path;
+        return {
+            fullyParsed: path + parsedQueryParameters,
+            withoutQueryParams: path
+        };
     }
 
     /**
