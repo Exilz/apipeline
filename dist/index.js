@@ -63,7 +63,7 @@ var DEFAULT_SERVICE_OPTIONS = {
     prefix: 'default'
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
-var OfflineFirstAPI = (function () {
+var OfflineFirstAPI = /** @class */ (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
         this._APIDriver = DEFAULT_CACHE_DRIVER;
@@ -73,21 +73,21 @@ var OfflineFirstAPI = (function () {
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, fullPath, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, _a, err_1;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, _b, err_1;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         serviceDefinition = this._APIServices[service];
                         if (!serviceDefinition) {
                             throw new Error("Cannot fetch data from unregistered service '" + service + "'");
                         }
-                        fullPath = this._constructPath(serviceDefinition, options);
-                        _b.label = 1;
+                        _a = this._constructPath(serviceDefinition, options), fullPath = _a.fullPath, withoutQueryParams = _a.withoutQueryParams;
+                        _c.label = 1;
                     case 1:
-                        _b.trys.push([1, 10, , 11]);
-                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, fullPath, options)];
+                        _c.trys.push([1, 10, , 11]);
+                        return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, { fullPath: fullPath, withoutQueryParams: withoutQueryParams }, options)];
                     case 2:
-                        middlewares = _b.sent();
+                        middlewares = _c.sent();
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
                         fetchHeaders = options && options.fetchHeaders;
                         shouldUseCache = this._shouldUseCache(serviceDefinition, options);
@@ -100,7 +100,7 @@ var OfflineFirstAPI = (function () {
                         expiration = Date.now() + expirationDelay;
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
                     case 3:
-                        cachedData = _b.sent();
+                        cachedData = _c.sent();
                         if (cachedData.success && cachedData.fresh && shouldUseCache) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
@@ -112,7 +112,7 @@ var OfflineFirstAPI = (function () {
                         parsedResponseData = void 0;
                         return [4 /*yield*/, this._fetch(fullPath, fetchOptions)];
                     case 4:
-                        res = _b.sent();
+                        res = _c.sent();
                         // If the network request fails, return the cached data if it's valid, a throw an error
                         if (!res.success) {
                             if (cachedData.success && cachedData.data) {
@@ -129,15 +129,15 @@ var OfflineFirstAPI = (function () {
                         return [3 /*break*/, 9];
                     case 5:
                         if (!((options && options.rawData) || serviceDefinition.rawData)) return [3 /*break*/, 6];
-                        _a = res.data;
+                        _b = res.data;
                         return [3 /*break*/, 8];
                     case 6: return [4 /*yield*/, res.data.json()];
                     case 7:
-                        _a = _b.sent();
-                        _b.label = 8;
+                        _b = _c.sent();
+                        _c.label = 8;
                     case 8:
-                        parsedResponseData = _a;
-                        _b.label = 9;
+                        parsedResponseData = _b;
+                        _c.label = 9;
                     case 9:
                         // Cache if it hasn't been disabled and if the network request has been successful
                         if (res.data.ok && shouldUseCache) {
@@ -146,7 +146,7 @@ var OfflineFirstAPI = (function () {
                         this._log('parsed network response', parsedResponseData);
                         return [2 /*return*/, parsedResponseData];
                     case 10:
-                        err_1 = _b.sent();
+                        err_1 = _c.sent();
                         throw new Error(err_1);
                     case 11: return [2 /*return*/];
                 }
@@ -517,7 +517,7 @@ var OfflineFirstAPI = (function () {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, fullPath, options) {
+    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, paths, options) {
         return __awaiter(this, void 0, void 0, function () {
             var middlewares, resolvedMiddlewares, err_9;
             return __generator(this, function (_a) {
@@ -528,7 +528,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, fullPath, options); });
+                        middlewares = middlewares.map(function (middleware) { return middleware(serviceDefinition, paths, options); });
                         return [4 /*yield*/, Promise.all(middlewares)];
                     case 2:
                         resolvedMiddlewares = _a.sent();
@@ -556,8 +556,12 @@ var OfflineFirstAPI = (function () {
         var domainURL = this._APIOptions.domains[domainKey];
         var prefixKey = (options && options.prefix) || serviceDefinition.prefix;
         var prefix = this._APIOptions.prefixes[prefixKey];
-        var parsedPath = this._parsePath(serviceDefinition, options);
-        return domainURL + prefix + '/' + parsedPath;
+        var _a = this._parsePath(serviceDefinition, options), fullyParsed = _a.fullyParsed, withoutQueryParams = _a.withoutQueryParams;
+        var urlRoot = domainURL + prefix + '/';
+        return {
+            fullPath: urlRoot + fullyParsed,
+            withoutQueryParams: urlRoot + withoutQueryParams
+        };
     };
     /**
      * Helper replacing the pathParameters from the service definition's path and appending
@@ -572,9 +576,13 @@ var OfflineFirstAPI = (function () {
      */
     OfflineFirstAPI.prototype._parsePath = function (serviceDefinition, options) {
         var path = serviceDefinition.path;
+        var parsedQueryParameters = '';
         if (options && options.pathParameters) {
             var pathParameters = options.pathParameters;
             for (var i in pathParameters) {
+                if (typeof pathParameters[i] === 'undefined') {
+                    continue;
+                }
                 path = path.replace(":" + i, pathParameters[i]);
             }
         }
@@ -582,13 +590,19 @@ var OfflineFirstAPI = (function () {
             var queryParameters = options.queryParameters;
             var insertedQueryParameters = 0;
             for (var i in queryParameters) {
-                path += insertedQueryParameters === 0 ?
+                if (typeof queryParameters[i] === 'undefined') {
+                    continue;
+                }
+                parsedQueryParameters += insertedQueryParameters === 0 ?
                     "?" + i + "=" + queryParameters[i] :
                     "&" + i + "=" + queryParameters[i];
                 insertedQueryParameters++;
             }
         }
-        return path;
+        return {
+            fullyParsed: path + parsedQueryParameters,
+            withoutQueryParams: path
+        };
     };
     /**
      * Merge the supplied API options with the default ones.
