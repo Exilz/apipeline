@@ -207,6 +207,8 @@ The URL to your endpoints are being constructed with **your domain name, your op
 
 * The `queryParameters` are regular query string parameters. For instance, a request fired with this path : `/weather` and these `queryParameters` : `{ days: 'mon,tue,sun', location: 'Paris,France' }` will become `/weather?days=mon,tue,sun&location=Paris,France`.
 
+> 💡 Pro-tip : Both query and path parameters can be undefined, in this case they simply won't be processed when generating your route. You don't have to create an intermediate variable holding your options to handle whether or not your variables are defined.
+
 ## Limiting the size of your cache
 
 If you fear your cache will keep growing, you have some options to make sure it doesn't get too big.
@@ -219,7 +221,7 @@ The other solution would be to use the capping option. If you set `capServices` 
 
 Just like for the other request options, **you can provide middlewares at the global level in your API options, at the service's definition level, or in the `options` parameter of the `fetch` method.**
 
-You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, fullPath: string, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
+You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, paths: IMiddlewarePaths, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
 
 Anything you will resolve in those promises will be merged into your request's options !
 
@@ -294,8 +296,8 @@ These are Typescript defintions, so they should be displayed in your editor/IDE 
 
 Pull requests are more than welcome for these items, or for any feature that might be missing.
 
-- [x] Write a demo
 - [ ] Improve capping performance by storing how many items are cached for each service so we don't have to parse the whole service's dictionary each time
 - [ ] Add a method to check for the total size of the cache, which would be useful to trigger a clearing if it reaches a certain size
 - [ ] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
 - [ ] Add automated testing
+- [x] Write a demo
