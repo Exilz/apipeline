@@ -22,6 +22,7 @@ const DEFAULT_API_OPTIONS = {
     disableCache: false,
     cacheExpiration: 5 * 60 * 1000,
     cachePrefix: 'offlineApiCache',
+    ignoreHeadersWhenCaching: false,
     capServices: false,
     capLimit: 50
 };
@@ -67,13 +68,8 @@ export default class OfflineFirstAPI {
             );
             const fetchHeaders = options && options.fetchHeaders;
             const shouldUseCache = this._shouldUseCache(serviceDefinition, options);
-            let requestId;
             let expiration;
-
-            // Build a short, hashed, identifier for that request
-            const _sha = new sha('SHA-1', 'TEXT');
-            _sha.update(`${fullPath}:${fetchHeaders ? 'headersOnly' : ''}:${JSON.stringify(fetchOptions)}`);
-            requestId = _sha.getHash('HEX');
+            const requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
 
             // Expiration priority : option parameter of fetch() > service definition > default setting
             const expirationDelay =
@@ -424,6 +420,31 @@ export default class OfflineFirstAPI {
         } else {
             return {};
         }
+    }
+
+    private _buildRequestId (
+        serviceDefinition: IAPIService,
+        fullPath: string,
+        fetchHeaders: boolean,
+        mergedOptions?: IFetchOptions, // fully merged options
+        fetchOptions?: IFetchOptions // fetch options
+    ): string {
+        const ignoreHeadersWhenCaching =
+            this._APIOptions.ignoreHeadersWhenCaching ||
+            serviceDefinition.ignoreHeadersWhenCaching ||
+            (fetchOptions && fetchOptions.ignoreHeadersWhenCaching);
+
+        const _sha = new sha('SHA-1', 'TEXT');
+        let requestStringId = `${fullPath}:${fetchHeaders ? 'headersOnly' : ''}`;
+
+        Object.keys(mergedOptions).forEach((key) => {
+            if (!ignoreHeadersWhenCaching || key !== 'headers') {
+                requestStringId += JSON.stringify(mergedOptions[key]);
+            }
+        });
+
+        _sha.update(requestStringId);
+        return _sha.getHash('HEX');
     }
 
     /**
