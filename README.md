@@ -161,6 +161,7 @@ Key | Type | Description | Example
 `disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
 `cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter)
 `cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache`
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
 `capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `capLimit` | `number` | Optional quantity of cached items for each service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `offlineDriver` | `IAPIDriver` | Optional, see [use your own driver for caching](#use-your-own-driver-for-caching)
@@ -180,6 +181,7 @@ Key | Type | Description | Example
 `disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
 `capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
 `rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api
 
 ## Fetch options
