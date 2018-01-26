@@ -1,6 +1,6 @@
 {
   "name": "react-native-offline-api",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Offline first API wrapper for react-native",
   "main": "./dist/index.js",
   "types": "./src/index.d.ts",
