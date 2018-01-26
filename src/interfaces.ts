@@ -7,6 +7,7 @@ export interface IAPIOptions {
     disableCache?: boolean;
     cacheExpiration?: number;
     cachePrefix?: string;
+    ignoreHeadersWhenCaching?: boolean;
     capServices?: boolean;
     capLimit?: number;
     offlineDriver: IAPIDriver;
@@ -19,6 +20,7 @@ export interface IAPIService {
     domain?: string;
     prefix?: string;
     middlewares?: APIMiddleware[];
+    ignoreHeadersWhenCaching?: boolean;
     disableCache?: boolean;
     capService?: boolean;
     capLimit?: number;

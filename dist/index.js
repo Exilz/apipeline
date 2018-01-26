@@ -54,6 +54,7 @@ var DEFAULT_API_OPTIONS = {
     disableCache: false,
     cacheExpiration: 5 * 60 * 1000,
     cachePrefix: 'offlineApiCache',
+    ignoreHeadersWhenCaching: false,
     capServices: false,
     capLimit: 50
 };
@@ -73,7 +74,7 @@ var OfflineFirstAPI = /** @class */ (function () {
     }
     OfflineFirstAPI.prototype.fetch = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, requestId, expiration, _sha, expirationDelay, cachedData, parsedResponseData, res, _b, err_1;
+            var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, expiration, requestId, expirationDelay, cachedData, parsedResponseData, res, _b, err_1;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -91,11 +92,8 @@ var OfflineFirstAPI = /** @class */ (function () {
                         fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
                         fetchHeaders = options && options.fetchHeaders;
                         shouldUseCache = this._shouldUseCache(serviceDefinition, options);
-                        requestId = void 0;
                         expiration = void 0;
-                        _sha = new sha('SHA-1', 'TEXT');
-                        _sha.update(fullPath + ":" + (fetchHeaders ? 'headersOnly' : '') + ":" + JSON.stringify(fetchOptions));
-                        requestId = _sha.getHash('HEX');
+                        requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
                         expirationDelay = (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
                         expiration = Date.now() + expirationDelay;
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
@@ -542,6 +540,22 @@ var OfflineFirstAPI = /** @class */ (function () {
                 }
             });
         });
+    };
+    OfflineFirstAPI.prototype._buildRequestId = function (serviceDefinition, fullPath, fetchHeaders, mergedOptions, // fully merged options
+        fetchOptions // fetch options
+    ) {
+        var ignoreHeadersWhenCaching = this._APIOptions.ignoreHeadersWhenCaching ||
+            serviceDefinition.ignoreHeadersWhenCaching ||
+            (fetchOptions && fetchOptions.ignoreHeadersWhenCaching);
+        var _sha = new sha('SHA-1', 'TEXT');
+        var requestStringId = fullPath + ":" + (fetchHeaders ? 'headersOnly' : '');
+        Object.keys(mergedOptions).forEach(function (key) {
+            if (!ignoreHeadersWhenCaching || key !== 'headers') {
+                requestStringId += JSON.stringify(mergedOptions[key]);
+            }
+        });
+        _sha.update(requestStringId);
+        return _sha.getHash('HEX');
     };
     /**
      * Helper returning the full URL of a service and its options.
