@@ -1,3 +1,8 @@
+import { IAPIDriver } from '../interfaces';
+
+type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
+type PromiseReject = (error?: any) => void;
+
 export interface ISQLiteBinding {
     DEBUG: (enabled: boolean) => void;
     enablePromise: (enabled: boolean) => void;
@@ -28,7 +33,7 @@ interface IQueryResults {
     rowsAffected: number;
 }
 
-export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ) => {
+export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): Promise<IAPIDriver> => {
     SQLite.DEBUG(options.debug || false);
     SQLite.enablePromise(true);
 
@@ -56,12 +61,12 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ) =>
     }
 };
 
-function getItem (db: ISQLiteDatabase) {
+function getItem (db: ISQLiteDatabase): IAPIDriver['getItem'] {
     return (key: string) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: PromiseResolve<any>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
                 tx.executeSql('SELECT * FROM cache WHERE id=?', [key])
-                .then((res) => {
+                .then((res: [ITransaction, IQueryResults]) => {
                     const results = res[1];
                     const item = results.rows.item(0);
                     return resolve(item && item.value || null);
@@ -74,9 +79,9 @@ function getItem (db: ISQLiteDatabase) {
     };
 }
 
-function setItem (db: ISQLiteDatabase) {
+function setItem (db: ISQLiteDatabase): IAPIDriver['setItem'] {
     return (key: string, value: string) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
                 tx.executeSql('INSERT OR REPLACE INTO cache VALUES (?,?)', [key, value])
                 .then(() => {
@@ -90,12 +95,12 @@ function setItem (db: ISQLiteDatabase) {
     };
 }
 
-function removeItem (db: ISQLiteDatabase) {
+function removeItem (db: ISQLiteDatabase): IAPIDriver['removeItem'] {
     return (key: string) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
                 tx.executeSql('DELETE FROM cache WHERE id=?', [key])
-                .then((res) => {
+                .then(() => {
                     return resolve();
                 })
                 .catch((err: Error) => {
@@ -106,19 +111,19 @@ function removeItem (db: ISQLiteDatabase) {
     };
 }
 
-function multiRemove (db) {
+function multiRemove (db: ISQLiteDatabase): IAPIDriver['multiRemove'] {
     return (keys: string[]) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             // This implmementation is not the most efficient, must delete using
             // WHERE id IN (...,...) doesn't seem to be working at the moment.
-            db.transaction((tx) => {
+            db.transaction((tx: ITransaction) => {
                 let promises = [];
-                keys.forEach((key) => {
+                keys.forEach((key: string) => {
                     promises.push(tx.executeSql('DELETE FROM cache WHERE id=?', [key]));
                 });
 
                 Promise.all(promises)
-                .then((deleteResults) => {
+                .then(() => {
                     return resolve();
                 })
                 .catch((err: Error) => {

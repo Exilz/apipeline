@@ -56,10 +56,10 @@ export interface ICacheDictionary {
 }
 
 export interface IAPIDriver {
-    getItem(key: string, callback?: (error?: Error, result?: string) => void);
-    setItem(key: string, value: string, callback?: (error?: Error) => void);
-    removeItem(key: string, callback?: (error?: Error) => void);
-    multiRemove(keys: string[], callback?: (errors?: Error[]) => void);
+    getItem(key: string): Promise<any>;
+    setItem(key: string, value: string): Promise<void>;
+    removeItem(key: string): Promise<void>;
+    multiRemove(keys: string[]): Promise<void>;
 }
 
 export interface IMiddlewarePaths {

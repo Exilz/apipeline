@@ -168,7 +168,7 @@ export default class OfflineFirstAPI {
 
     public setServices (services: IAPIServices): void {
         this._APIServices = this._mergeServicesWithDefaultValues(services);
-        this._log('services set to', this._APIServices)
+        this._log('services set to', this._APIServices);
     }
 
     public setCacheDriver (driver: IAPIDriver): void {
@@ -255,7 +255,7 @@ export default class OfflineFirstAPI {
      * @param {string} service
      * @param {string} requestId
      * @param {string} fullPath
-     * @returns {Promise<ICachedData>} 
+     * @returns {Promise<ICachedData>}
      * @memberof OfflineFirstAPI
      */
     private async _getCachedData (service: string, requestId: string, fullPath: string): Promise<ICachedData> {
@@ -264,7 +264,7 @@ export default class OfflineFirstAPI {
 
         const expiration = serviceDictionary[requestId];
         if (expiration) {
-            this._log(`${fullPath} already cached, expiring at : ${expiration}`)
+            this._log(`${fullPath} already cached, expiring at : ${expiration}`);
             try {
                 const rawCachedData = await this._APIDriver.getItem(this._getCacheObjectKey(requestId));
                 const parsedCachedData = JSON.parse(rawCachedData);
@@ -439,7 +439,7 @@ export default class OfflineFirstAPI {
         const _sha = new sha('SHA-1', 'TEXT');
         let requestStringId = `${fullPath}:${fetchHeaders ? 'headersOnly' : ''}`;
 
-        Object.keys(mergedOptions).forEach((key) => {
+        Object.keys(mergedOptions).forEach((key: string) => {
             if (!ignoreHeadersWhenCaching || key !== 'headers') {
                 requestStringId += JSON.stringify(mergedOptions[key]);
             }
@@ -517,8 +517,8 @@ export default class OfflineFirstAPI {
     /**
      * Merge the supplied API options with the default ones.
      * @private
-     * @param {IAPIOptions} options 
-     * @returns {IAPIOptions} 
+     * @param {IAPIOptions} options
+     * @returns {IAPIOptions}
      * @memberof OfflineFirstAPI
      */
     private _mergeAPIOptionsWithDefaultValues (options: IAPIOptions): IAPIOptions {

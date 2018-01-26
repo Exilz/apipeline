@@ -110,7 +110,7 @@ function removeItem(db) {
         return new Promise(function (resolve, reject) {
             db.transaction(function (tx) {
                 tx.executeSql('DELETE FROM cache WHERE id=?', [key])
-                    .then(function (res) {
+                    .then(function () {
                     return resolve();
                 })
                     .catch(function (err) {
@@ -131,7 +131,7 @@ function multiRemove(db) {
                     promises.push(tx.executeSql('DELETE FROM cache WHERE id=?', [key]));
                 });
                 Promise.all(promises)
-                    .then(function (deleteResults) {
+                    .then(function () {
                     return resolve();
                 })
                     .catch(function (err) {
