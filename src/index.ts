@@ -233,7 +233,7 @@ export default class OfflineFirstAPI {
                         this._log(`service ${service} cap reached (${cachedItemsCount} / ${capLimit}), removing the oldest cached item...`);
                         const { key } = this._getOldestCachedItem(dictionary);
                         delete dictionary[key];
-                        await this._APIDriver.removeItem(key);
+                        await this._APIDriver.removeItem(this._getCacheObjectKey(key));
                         this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                     }
                 }
