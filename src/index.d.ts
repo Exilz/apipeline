@@ -10,7 +10,7 @@ import {
 } from './interfaces';
 
 declare module "react-native-offline-api" {
-    export class OfflineFirstAPI {
+    export default class OfflineFirstAPI {
         constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPIDriver);
         public fetch (service: string, options?: IFetchOptions): Promise<any>;
         public fetchHeaders (service: string, options?: IFetchOptions): Promise<any>;
