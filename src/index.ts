@@ -1,4 +1,5 @@
 import { AsyncStorage } from 'react-native';
+import sqliteDriver from './drivers/sqlite';
 import * as _mapValues from 'lodash.mapvalues';
 import * as _merge from 'lodash.merge';
 import * as sha from 'jssha';
@@ -35,6 +36,7 @@ const DEFAULT_SERVICE_OPTIONS = {
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
 
+export const drivers = { sqliteDriver };
 export default class OfflineFirstAPI {
 
     private _APIOptions: IAPIOptions;
