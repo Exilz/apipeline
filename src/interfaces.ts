@@ -14,7 +14,7 @@ export interface IAPIOptions {
 };
 
 export interface IAPIService {
-    path: string;
+    path?: string;
     expiration?: number;
     method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
     domain?: string;
@@ -32,8 +32,8 @@ export interface IAPIServices {
 };
 
 export interface IFetchOptions extends IAPIService {
-    pathParameters?: { [key: string]: string };
-    queryParameters?: { [key: string]: string };
+    pathParameters?: { [key: string]: any };
+    queryParameters?: { [key: string]: any };
     headers?: { [key: string]: string };
     fetchHeaders?: boolean;
     middlewares?: APIMiddleware[];
