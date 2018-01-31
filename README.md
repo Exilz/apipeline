@@ -213,86 +213,23 @@ The URL to your endpoints are being constructed with **your domain name, your op
 
 ## Limiting the size of your cache
 
-If you fear your cache will keep growing, you have some options to make sure it doesn't get too big.
-
-First, you can use the `clearCache` method to empty all stored data, or just a service's items. You might want to implement a button in your interface to give your users the ability to clear it whenever they want if they feel like their app is starting to take too much space.
-
-The other solution would be to use the capping option. If you set `capServices` to true in your [API options](#api-options), or `capService` in your [service options](#services-options), the wrapper will make sure it never stores more items that the amount you configured in `capLimit`. This is a good way to restrict the size of stored data for sensitive services, while leaving some of them uncapped. Capping is disabled by default.
+[Learn more about enabling capping in the documentation](docs/cache-size.md)
 
 ## Middlewares
 
-Just like for the other request options, **you can provide middlewares at the global level in your API options, at the service's definition level, or in the `options` parameter of the `fetch` method.**
-
-You must provide an **array of promises**, like so : `(serviceDefinition: IAPIService, paths: IMiddlewarePaths, options: IFetchOptions) => any;`, please [take a look at the types](#types) to know more. You don't necessarily need to write asynchronous code in them, but they all must be promises.
-
-Anything you will resolve in those promises will be merged into your request's options !
-
-Here's a barebone example :
-
-```javascript
-const API_OPTIONS = {
-    // ... all your api options
-    middlewares: [exampleMiddleware],
-};
-
-async function exampleMiddleware (serviceDefinition, serviceOptions) {
-  // This will be printed everytime you call a service
-  console.log('You just fired a request for the path ' + serviceDefinition.path);
-}
-```
-
-You can even make API calls in your middlewares. For instance, you might want to make sure the user is logged in into your API, or you might want to refresh its authentication token once in a while. Like so :
-
-```javascript
-const API_OPTIONS = {
-    // ... all your api options
-    middlewares: [authMiddleware]
-}
-
-async function authMiddleware (serviceDefinition, serviceOptions) {
-    if (authToken && !tokenExpired) {
-        // Our token is up-to-date, add it to the headers of our request
-        return { headers: { 'X-Auth-Token': authToken } };
-    }
-    // Token is missing or outdated, let's fetch a new one
-    try {
-        // Assuming our login service's method is already set to 'POST'
-        const authData = await api.fetch(
-            'login',
-            // the 'fetcthOptions' key allows us to use any of react-native's fetch method options
-            // here, the body of our post request
-            { fetchOptions: { body: 'username=user&password=password' } } 
-        );
-        // Store our new authentication token and add it to the headers of our request
-        authToken = authData.authToken;
-        tokenExpired = false;
-        return { headers: { 'X-Auth-Token': authData.authToken } };
-    } catch (err) {
-        throw new Error(`Couldn't auth to API, ${err}`);
-    }
-}
-```
+[Check out middlewares documentation and examples](docs/middlewares.md)
 
 ## Using your own driver for caching
 
-This wrapper has been written with the goal of **being storage-agnostic**. This means that by default, it will make use of react-native's `AsyncStorage` API, but feel free to write your own driver and use anything you want, like the amazing [realm](https://github.com/realm/realm-js) or [sqlite](https://github.com/andpor/react-native-sqlite-storage).
+> 💡 You can now use SQLite instead of AsyncStorage without additional code !
 
-> This is the first step for the wrapper to being also available on the browser and in any node.js environment.
-
-Your custom driver must implement these 3 methods that are promises.
-
-* `getItem(key: string, callback?: (error?: Error, result?: string) => void)`
-* `setItem(key: string, value: string, callback?: (error?: Error) => void);`
-* `removeItem(key: string, callback?: (error?: Error) => void);`
-* `multiRemove(keys: string[], callback?: (errors?: Error[]) => void);`
-
-*Please note that, as of the 1.0 release, this hasn't been tested thoroughly.*
+[Check out drivers documentation and how to enable the SQLite driver](docs/custom-drivers.md)
 
 ## Types
 
 Every API interfaces [can be seen here](src/interfaces.ts) so you don't need to poke around the parameters in your console to be aware of what's available to you :)
 
-These are Typescript defintions, so they should be displayed in your editor/IDE if it supports it.
+> 💡 These are Typescript defintions, so they should be displayed in your editor/IDE if it supports it.
 
 ## Roadmap
 
@@ -300,6 +237,6 @@ Pull requests are more than welcome for these items, or for any feature that mig
 
 - [ ] Improve capping performance by storing how many items are cached for each service so we don't have to parse the whole service's dictionary each time
 - [ ] Add a method to check for the total size of the cache, which would be useful to trigger a clearing if it reaches a certain size
-- [ ] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
 - [ ] Add automated testing
+- [x] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
 - [x] Write a demo

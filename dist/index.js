@@ -44,6 +44,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var react_native_1 = require("react-native");
+var sqlite_1 = require("./drivers/sqlite");
 var _mapValues = require("lodash.mapvalues");
 var _merge = require("lodash.merge");
 var sha = require("jssha");
@@ -64,6 +65,7 @@ var DEFAULT_SERVICE_OPTIONS = {
     prefix: 'default'
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
+exports.drivers = { sqliteDriver: sqlite_1.default };
 var OfflineFirstAPI = /** @class */ (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
@@ -307,7 +309,7 @@ var OfflineFirstAPI = /** @class */ (function () {
                         this._log("service " + service + " cap reached (" + cachedItemsCount + " / " + capLimit + "), removing the oldest cached item...");
                         key = this._getOldestCachedItem(dictionary).key;
                         delete dictionary[key];
-                        return [4 /*yield*/, this._APIDriver.removeItem(key)];
+                        return [4 /*yield*/, this._APIDriver.removeItem(this._getCacheObjectKey(key))];
                     case 5:
                         _a.sent();
                         this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
