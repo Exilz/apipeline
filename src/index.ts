@@ -118,6 +118,15 @@ export default class OfflineFirstAPI {
                 parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ?
                     res.data :
                     await res.data.json();
+
+                const responseMiddleware =
+                    (options && options.responseMiddleware) ||
+                    serviceDefinition.responseMiddleware ||
+                    this._APIOptions.responseMiddleware;
+
+                if (responseMiddleware) {
+                    parsedResponseData = responseMiddleware(parsedResponseData);
+                }
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
