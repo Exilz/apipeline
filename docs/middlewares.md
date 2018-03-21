@@ -59,7 +59,7 @@ As of `2.3.0`, you can now configure a `responseMiddleware`  at the global level
 
 Just provide a function that takes the response of your API call as the first parameter, alter it the way you like, and don't forget to return it.
 
-> ℹ️  Keep in mind taht **️using the `rawData` option will disable this middleware** since it's meant to circumvent any kind of parsing before returning your data.
+> ℹ️   Keep in mind that **using the `rawData` option will disable this middleware** since it's meant to circumvent any kind of parsing before returning your data.
 
 > **⚠️  This middleware is only triggered when an actual network request is fired**. Your altered response will then be cached as usual, and this middleware will only be fired again when the cache for this request expires, or if you've disabled caching. Do not use this option to do some kind of network logging, you should use the regular `middlewares` option instead.
 
