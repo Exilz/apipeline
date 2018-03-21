@@ -13,7 +13,8 @@ import {
     ICacheDictionary,
     IAPIDriver,
     APIMiddleware,
-    IMiddlewarePaths
+    IMiddlewarePaths,
+    IHTTPMethods
 } from './interfaces';
 
 const DEFAULT_API_OPTIONS = {
@@ -35,6 +36,7 @@ const DEFAULT_SERVICE_OPTIONS = {
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
+const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 
 export const drivers = { sqliteDriver };
 export default class OfflineFirstAPI {
@@ -47,9 +49,17 @@ export default class OfflineFirstAPI {
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
+
+        this._createHTTPMethods();
     }
 
-    public async fetch (service: string, options?: IFetchOptions): Promise<any> {
+    _createHTTPMethods () {
+        HTTP_METHODS.forEach((method: IHTTPMethods) => {
+            this[method.toLocaleLowerCase()] = async (...args: any[]) => this.fetch(args[0], args[1], method);
+        });
+    }
+
+    public async fetch (service: string, options?: IFetchOptions, forcedHTTPMethod?: IHTTPMethods): Promise<any> {
         const serviceDefinition: IAPIService = this._APIServices[service];
         if (!serviceDefinition) {
             throw new Error(`Cannot fetch data from unregistered service '${service}'`);
@@ -65,7 +75,7 @@ export default class OfflineFirstAPI {
             const fetchOptions = _merge(
                 middlewares,
                 (options && options.fetchOptions) || {},
-                { method: serviceDefinition.method },
+                { method: forcedHTTPMethod || serviceDefinition.method },
                 { headers: (options && options.headers) || {} }
             );
             const fetchHeaders = options && options.fetchHeaders;
@@ -85,7 +95,7 @@ export default class OfflineFirstAPI {
             }
 
             // Network fetch
-            this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options);
+            this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod);
             this._log('full URL for request', fullPath);
             this._log('full fetch options for request', fetchOptions);
             let parsedResponseData;
@@ -588,7 +598,7 @@ export default class OfflineFirstAPI {
         if (this._APIOptions.printNetworkRequests) {
             console.log(
                 `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${fullPath} ` +
-                `(${(options && options.method) || serviceDefinition.method})`,
+                `(${forcedHTTPMethod || (options && options.method) || serviceDefinition.method})`,
                 'font-weight: bold; color: blue'
             );
         }

@@ -1,3 +1,5 @@
+export type IHTTPMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
+
 export interface IAPIOptions {
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
@@ -16,7 +18,7 @@ export interface IAPIOptions {
 export interface IAPIService {
     path?: string;
     expiration?: number;
-    method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
+    method?: IHTTPMethods;
     domain?: string;
     prefix?: string;
     middlewares?: APIMiddleware[];
