@@ -65,18 +65,34 @@ var DEFAULT_SERVICE_OPTIONS = {
     prefix: 'default'
 };
 var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
+var HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 exports.drivers = { sqliteDriver: sqlite_1.default };
-var OfflineFirstAPI = /** @class */ (function () {
+var OfflineFirstAPI = (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
         this._APIDriver = DEFAULT_CACHE_DRIVER;
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
+        this._createHTTPMethods();
     }
-    OfflineFirstAPI.prototype.fetch = function (service, options) {
+    OfflineFirstAPI.prototype._createHTTPMethods = function () {
+        var _this = this;
+        HTTP_METHODS.forEach(function (method) {
+            _this[method.toLocaleLowerCase()] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
+                    return [2 /*return*/, this.fetch(args[0], args[1], method)];
+                }); });
+            };
+        });
+    };
+    OfflineFirstAPI.prototype.fetch = function (service, options, forcedHTTPMethod) {
         return __awaiter(this, void 0, void 0, function () {
-            var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, expiration, requestId, expirationDelay, cachedData, parsedResponseData, res, _b, err_1;
+            var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, expiration, requestId, expirationDelay, cachedData, parsedResponseData, res, _b, responseMiddleware, err_1;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -91,7 +107,7 @@ var OfflineFirstAPI = /** @class */ (function () {
                         return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, { fullPath: fullPath, withoutQueryParams: withoutQueryParams }, options)];
                     case 2:
                         middlewares = _c.sent();
-                        fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: serviceDefinition.method }, { headers: (options && options.headers) || {} });
+                        fetchOptions = _merge(middlewares, (options && options.fetchOptions) || {}, { method: forcedHTTPMethod || serviceDefinition.method }, { headers: (options && options.headers) || {} });
                         fetchHeaders = options && options.fetchHeaders;
                         shouldUseCache = this._shouldUseCache(serviceDefinition, options);
                         expiration = void 0;
@@ -106,7 +122,7 @@ var OfflineFirstAPI = /** @class */ (function () {
                             return [2 /*return*/, cachedData.data];
                         }
                         // Network fetch
-                        this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options);
+                        this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod);
                         this._log('full URL for request', fullPath);
                         this._log('full fetch options for request', fetchOptions);
                         parsedResponseData = void 0;
@@ -137,6 +153,12 @@ var OfflineFirstAPI = /** @class */ (function () {
                         _c.label = 8;
                     case 8:
                         parsedResponseData = _b;
+                        responseMiddleware = (options && options.responseMiddleware) ||
+                            serviceDefinition.responseMiddleware ||
+                            this._APIOptions.responseMiddleware;
+                        if (responseMiddleware) {
+                            parsedResponseData = responseMiddleware(parsedResponseData);
+                        }
                         _c.label = 9;
                     case 9:
                         // Cache if it hasn't been disabled and if the network request has been successful
@@ -306,7 +328,8 @@ var OfflineFirstAPI = /** @class */ (function () {
                         dictionary = JSON.parse(dictionary);
                         cachedItemsCount = Object.keys(dictionary).length;
                         if (!(cachedItemsCount > capLimit)) return [3 /*break*/, 6];
-                        this._log("service " + service + " cap reached (" + cachedItemsCount + " / " + capLimit + "), removing the oldest cached item...");
+                        this._log("service " + service + " cap reached (" + cachedItemsCount + " / " + capLimit + ")" +
+                            ', removing the oldest cached item...');
                         key = this._getOldestCachedItem(dictionary).key;
                         delete dictionary[key];
                         return [4 /*yield*/, this._APIDriver.removeItem(this._getCacheObjectKey(key))];
@@ -660,10 +683,10 @@ var OfflineFirstAPI = /** @class */ (function () {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fullPath, fetchHeaders, options) {
+    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod) {
         if (this._APIOptions.printNetworkRequests) {
             console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + fullPath + " " +
-                ("(" + ((options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
+                ("(" + (forcedHTTPMethod || (options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
         }
     };
     /**
