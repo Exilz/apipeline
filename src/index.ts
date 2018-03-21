@@ -105,7 +105,9 @@ export default class OfflineFirstAPI {
             if (fetchHeaders) {
                 parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
             } else {
-                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ? res.data : await res.data.json();
+                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ?
+                    res.data :
+                    await res.data.json();
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
@@ -232,7 +234,10 @@ export default class OfflineFirstAPI {
                     dictionary = JSON.parse(dictionary);
                     const cachedItemsCount = Object.keys(dictionary).length;
                     if (cachedItemsCount > capLimit) {
-                        this._log(`service ${service} cap reached (${cachedItemsCount} / ${capLimit}), removing the oldest cached item...`);
+                        this._log(
+                            `service ${service} cap reached (${cachedItemsCount} / ${capLimit})` +
+                            ', removing the oldest cached item...'
+                        );
                         const { key } = this._getOldestCachedItem(dictionary);
                         delete dictionary[key];
                         await this._APIDriver.removeItem(this._getCacheObjectKey(key));
@@ -408,7 +413,11 @@ export default class OfflineFirstAPI {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    private async _applyMiddlewares (serviceDefinition: IAPIService, paths: IMiddlewarePaths, options?: IFetchOptions): Promise<any> {
+    private async _applyMiddlewares (
+        serviceDefinition: IAPIService,
+        paths: IMiddlewarePaths,
+        options?: IFetchOptions
+    ): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
         if (middlewares && middlewares.length) {
@@ -569,7 +578,13 @@ export default class OfflineFirstAPI {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    private _logNetwork (serviceDefinition: IAPIService, fullPath: string, fetchHeaders: boolean, options?: IFetchOptions): void {
+    private _logNetwork (
+        serviceDefinition: IAPIService,
+        fullPath: string,
+        fetchHeaders: boolean,
+        options?: IFetchOptions,
+        forcedHTTPMethod?: IHTTPMethods
+    ): void {
         if (this._APIOptions.printNetworkRequests) {
             console.log(
                 `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${fullPath} ` +
