@@ -125,7 +125,7 @@ export default class OfflineFirstAPI {
                     this._APIOptions.responseMiddleware;
 
                 if (responseMiddleware) {
-                    parsedResponseData = responseMiddleware(parsedResponseData);
+                    parsedResponseData = await responseMiddleware(parsedResponseData);
                 }
             }
 
