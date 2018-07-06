@@ -103,7 +103,7 @@ var OfflineFirstAPI = (function () {
                         _a = this._constructPath(serviceDefinition, options), fullPath = _a.fullPath, withoutQueryParams = _a.withoutQueryParams;
                         _c.label = 1;
                     case 1:
-                        _c.trys.push([1, 10, , 11]);
+                        _c.trys.push([1, 11, , 12]);
                         return [4 /*yield*/, this._applyMiddlewares(serviceDefinition, { fullPath: fullPath, withoutQueryParams: withoutQueryParams }, options)];
                     case 2:
                         middlewares = _c.sent();
@@ -142,7 +142,7 @@ var OfflineFirstAPI = (function () {
                         this._log('raw network response', res);
                         if (!fetchHeaders) return [3 /*break*/, 5];
                         parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
-                        return [3 /*break*/, 9];
+                        return [3 /*break*/, 10];
                     case 5:
                         if (!((options && options.rawData) || serviceDefinition.rawData)) return [3 /*break*/, 6];
                         _b = res.data;
@@ -156,21 +156,22 @@ var OfflineFirstAPI = (function () {
                         responseMiddleware = (options && options.responseMiddleware) ||
                             serviceDefinition.responseMiddleware ||
                             this._APIOptions.responseMiddleware;
-                        if (responseMiddleware) {
-                            parsedResponseData = responseMiddleware(parsedResponseData);
-                        }
-                        _c.label = 9;
+                        if (!responseMiddleware) return [3 /*break*/, 10];
+                        return [4 /*yield*/, responseMiddleware(parsedResponseData)];
                     case 9:
+                        parsedResponseData = _c.sent();
+                        _c.label = 10;
+                    case 10:
                         // Cache if it hasn't been disabled and if the network request has been successful
                         if (res.data.ok && shouldUseCache) {
                             this._cache(serviceDefinition, service, requestId, parsedResponseData, expiration);
                         }
                         this._log('parsed network response', parsedResponseData);
                         return [2 /*return*/, parsedResponseData];
-                    case 10:
+                    case 11:
                         err_1 = _c.sent();
                         throw new Error(err_1);
-                    case 11: return [2 /*return*/];
+                    case 12: return [2 /*return*/];
                 }
             });
         });
