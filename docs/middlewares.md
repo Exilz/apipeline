@@ -70,3 +70,5 @@ const API_SERVICES = {
     myService: { path: 'myService', responseMiddleware: (res) => ({ ...res, timestamp: Date.now() }) },
 };
 ```
+
+> ℹ️   You definitely can write asynchronous code in there. This could be useful if you need to dispatch a request depending on the response of the first one. For instance, you might want to refresh an authentication token if you find out in your response that the previous one just expired.
