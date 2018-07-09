@@ -168,7 +168,7 @@ export default class OfflineFirstAPI {
                 keysToRemove = await this._getAllKeysForService(service);
             }
             this._log('keys to be removed', keysToRemove);
-            await this._APIDriver.multiRemove(keysToRemove);
+            await Promise.all(keysToRemove.map((key: string) => this._APICacheDriver.removeItem(key)));
             return;
         } catch (err) {
             throw new Error(err);

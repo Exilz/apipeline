@@ -7,7 +7,6 @@ Your custom driver must implement these 3 methods that are promises.
 * `getItem(key: string): Promise<any>;`
 * `setItem(key: string, value: string): Promise<void>;`
 * `removeItem(key: string): Promise<void>;`
-* `multiRemove(keys: string[]): Promise<void>;`
 
 ## SQLite Driver
 

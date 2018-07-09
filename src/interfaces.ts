@@ -64,7 +64,6 @@ export interface IAPIDriver {
     getItem(key: string): Promise<any>;
     setItem(key: string, value: string): Promise<void>;
     removeItem(key: string): Promise<void>;
-    multiRemove(keys: string[]): Promise<void>;
 }
 
 export interface IMiddlewarePaths {

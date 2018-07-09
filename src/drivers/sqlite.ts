@@ -53,8 +53,7 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): P
         return {
             getItem: getItem(db),
             setItem: setItem(db),
-            removeItem: removeItem(db),
-            multiRemove: multiRemove(db)
+            removeItem: removeItem(db)
         };
     } catch (err) {
         throw new Error(`react-native-offline-api : Cannot open SQLite database : ${err}. Check your SQLite configuration.`);
@@ -100,29 +99,6 @@ function removeItem (db: ISQLiteDatabase): IAPIDriver['removeItem'] {
         return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
                 tx.executeSql('DELETE FROM cache WHERE id=?', [key])
-                .then(() => {
-                    return resolve();
-                })
-                .catch((err: Error) => {
-                    return reject(err);
-                });
-            });
-        });
-    };
-}
-
-function multiRemove (db: ISQLiteDatabase): IAPIDriver['multiRemove'] {
-    return (keys: string[]) => {
-        return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
-            // This implmementation is not the most efficient, must delete using
-            // WHERE id IN (...,...) doesn't seem to be working at the moment.
-            db.transaction((tx: ITransaction) => {
-                let promises = [];
-                keys.forEach((key: string) => {
-                    promises.push(tx.executeSql('DELETE FROM cache WHERE id=?', [key]));
-                });
-
-                Promise.all(promises)
                 .then(() => {
                     return resolve();
                 })
