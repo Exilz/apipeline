@@ -63,8 +63,7 @@ exports.default = function (SQLite, options) { return __awaiter(_this, void 0, v
                 return [2 /*return*/, {
                         getItem: getItem(db),
                         setItem: setItem(db),
-                        removeItem: removeItem(db),
-                        multiRemove: multiRemove(db)
+                        removeItem: removeItem(db)
                     }];
             case 3:
                 err_1 = _a.sent();
@@ -110,27 +109,6 @@ function removeItem(db) {
         return new Promise(function (resolve, reject) {
             db.transaction(function (tx) {
                 tx.executeSql('DELETE FROM cache WHERE id=?', [key])
-                    .then(function () {
-                    return resolve();
-                })
-                    .catch(function (err) {
-                    return reject(err);
-                });
-            });
-        });
-    };
-}
-function multiRemove(db) {
-    return function (keys) {
-        return new Promise(function (resolve, reject) {
-            // This implmementation is not the most efficient, must delete using
-            // WHERE id IN (...,...) doesn't seem to be working at the moment.
-            db.transaction(function (tx) {
-                var promises = [];
-                keys.forEach(function (key) {
-                    promises.push(tx.executeSql('DELETE FROM cache WHERE id=?', [key]));
-                });
-                Promise.all(promises)
                     .then(function () {
                     return resolve();
                 })

@@ -43,7 +43,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_native_1 = require("react-native");
 var sqlite_1 = require("./drivers/sqlite");
 var _mapValues = require("lodash.mapvalues");
 var _merge = require("lodash.merge");
@@ -64,17 +63,20 @@ var DEFAULT_SERVICE_OPTIONS = {
     domain: 'default',
     prefix: 'default'
 };
-var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
 var HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 exports.drivers = { sqliteDriver: sqlite_1.default };
 var OfflineFirstAPI = (function () {
     function OfflineFirstAPI(options, services, driver) {
         this._APIServices = {};
-        this._APIDriver = DEFAULT_CACHE_DRIVER;
+        this._warnedAboutMissingDriver = false;
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
         this._createHTTPMethods();
+        if (!this._APIOptions.fetchMethod) {
+            throw new Error("Your fetch method is undefined. If you're not using react-native " +
+                'make sure to set `fetchMethod` in your API options.');
+        }
     }
     OfflineFirstAPI.prototype._createHTTPMethods = function () {
         var _this = this;
@@ -100,6 +102,11 @@ var OfflineFirstAPI = (function () {
                         if (!serviceDefinition) {
                             throw new Error("Cannot fetch data from unregistered service '" + service + "'");
                         }
+                        if (!this._APICacheDriver && !this._warnedAboutMissingDriver) {
+                            this._log('No caching driver set. Remember set it as the 3rd argument of OfflineAPI ' +
+                                'or use the `setCacheDriver` method before firing requests. Nothing will be cached for now.');
+                            this._warnedAboutMissingDriver = true;
+                        }
                         _a = this._constructPath(serviceDefinition, options), fullPath = _a.fullPath, withoutQueryParams = _a.withoutQueryParams;
                         _c.label = 1;
                     case 1:
@@ -117,7 +124,7 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
                     case 3:
                         cachedData = _c.sent();
-                        if (cachedData.success && cachedData.fresh && shouldUseCache) {
+                        if (shouldUseCache && cachedData.success && cachedData.fresh) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
                         }
@@ -195,6 +202,7 @@ var OfflineFirstAPI = (function () {
     };
     OfflineFirstAPI.prototype.clearCache = function (service) {
         return __awaiter(this, void 0, void 0, function () {
+            var _this = this;
             var keysToRemove, _a, _b, _i, serviceName, keysForService, err_3;
             return __generator(this, function (_c) {
                 switch (_c.label) {
@@ -233,7 +241,7 @@ var OfflineFirstAPI = (function () {
                         _c.label = 8;
                     case 8:
                         this._log('keys to be removed', keysToRemove);
-                        return [4 /*yield*/, this._APIDriver.multiRemove(keysToRemove)];
+                        return [4 /*yield*/, Promise.all(keysToRemove.map(function (key) { return _this._APICacheDriver.removeItem(key); }))];
                     case 9:
                         _c.sent();
                         return [2 /*return*/];
@@ -258,7 +266,7 @@ var OfflineFirstAPI = (function () {
         this._log('services set to', this._APIServices);
     };
     OfflineFirstAPI.prototype.setCacheDriver = function (driver) {
-        this._APIDriver = driver;
+        this._APICacheDriver = driver;
         this._log('custom driver set');
     };
     /**
@@ -278,10 +286,11 @@ var OfflineFirstAPI = (function () {
                     case 0:
                         _b.trys.push([0, 2, , 3]);
                         _a = { success: true };
-                        return [4 /*yield*/, fetch(url, options)];
+                        return [4 /*yield*/, this._APIOptions.fetchMethod(url, options)];
                     case 1: return [2 /*return*/, (_a.data = _b.sent(), _a)];
                     case 2:
                         err_4 = _b.sent();
+                        console.warn(err_4);
                         return [2 /*return*/, { success: false }];
                     case 3: return [2 /*return*/];
                 }
@@ -315,14 +324,14 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, this._addKeyToServiceDictionary(service, requestId, expiration)];
                     case 2:
                         _a.sent();
-                        return [4 /*yield*/, this._APIDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response))];
+                        return [4 /*yield*/, this._APICacheDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response))];
                     case 3:
                         _a.sent();
                         this._log("Updated cache for request " + requestId);
                         if (!shouldCap) return [3 /*break*/, 6];
                         capLimit = serviceDefinition.capLimit || this._APIOptions.capLimit;
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 4:
                         dictionary = _a.sent();
                         if (!dictionary) return [3 /*break*/, 6];
@@ -333,10 +342,10 @@ var OfflineFirstAPI = (function () {
                             ', removing the oldest cached item...');
                         key = this._getOldestCachedItem(dictionary).key;
                         delete dictionary[key];
-                        return [4 /*yield*/, this._APIDriver.removeItem(this._getCacheObjectKey(key))];
+                        return [4 /*yield*/, this._APICacheDriver.removeItem(this._getCacheObjectKey(key))];
                     case 5:
                         _a.sent();
-                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         _a.label = 6;
                     case 6: return [2 /*return*/, true];
                     case 7:
@@ -363,7 +372,11 @@ var OfflineFirstAPI = (function () {
             var serviceDictionary, expiration, rawCachedData, parsedCachedData, err_6;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this._APIDriver.getItem(this._getServiceDictionaryKey(service))];
+                    case 0:
+                        if (!this._APICacheDriver) {
+                            return [2 /*return*/, { success: false }];
+                        }
+                        return [4 /*yield*/, this._APICacheDriver.getItem(this._getServiceDictionaryKey(service))];
                     case 1:
                         serviceDictionary = _a.sent();
                         serviceDictionary = JSON.parse(serviceDictionary) || {};
@@ -373,7 +386,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 4, , 5]);
-                        return [4 /*yield*/, this._APIDriver.getItem(this._getCacheObjectKey(requestId))];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(this._getCacheObjectKey(requestId))];
                     case 3:
                         rawCachedData = _a.sent();
                         parsedCachedData = JSON.parse(rawCachedData);
@@ -407,7 +420,10 @@ var OfflineFirstAPI = (function () {
      * @memberof OfflineFirstAPI
      */
     OfflineFirstAPI.prototype._shouldUseCache = function (serviceDefinition, options) {
-        if (options && typeof options.disableCache !== 'undefined') {
+        if (!this._APICacheDriver) {
+            return false;
+        }
+        else if (options && typeof options.disableCache !== 'undefined') {
             return !options.disableCache;
         }
         else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
@@ -434,7 +450,7 @@ var OfflineFirstAPI = (function () {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 1:
                         dictionary = _a.sent();
                         if (!dictionary) {
@@ -444,7 +460,7 @@ var OfflineFirstAPI = (function () {
                             dictionary = JSON.parse(dictionary);
                         }
                         dictionary[requestId] = expiration;
-                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         return [2 /*return*/, true];
                     case 2:
                         err_7 = _a.sent();
@@ -495,7 +511,7 @@ var OfflineFirstAPI = (function () {
                         keys = [];
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
                         keys.push(serviceDictionaryKey);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 1:
                         dictionary = _a.sent();
                         if (dictionary) {
