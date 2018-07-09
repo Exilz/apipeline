@@ -1,4 +1,4 @@
 node_modules/
 *.log
-
+demos/web/.next
 yarn.lock
