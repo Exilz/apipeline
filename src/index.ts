@@ -1,4 +1,3 @@
-import { AsyncStorage } from 'react-native';
 import sqliteDriver from './drivers/sqlite';
 import * as _mapValues from 'lodash.mapvalues';
 import * as _merge from 'lodash.merge';
@@ -35,7 +34,6 @@ const DEFAULT_SERVICE_OPTIONS = {
     prefix: 'default'
 };
 
-const DEFAULT_CACHE_DRIVER = AsyncStorage;
 const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 
 export const drivers = { sqliteDriver };
@@ -44,6 +42,7 @@ export default class OfflineFirstAPI {
     private _APIOptions: IAPIOptions;
     private _APIServices: IAPIServices = {};
     private _APICacheDriver: IAPICacheDriver;
+    private _warnedAboutMissingDriver: boolean = false;
 
     constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPICacheDriver) {
         options && this.setOptions(options);
@@ -63,6 +62,13 @@ export default class OfflineFirstAPI {
         const serviceDefinition: IAPIService = this._APIServices[service];
         if (!serviceDefinition) {
             throw new Error(`Cannot fetch data from unregistered service '${service}'`);
+        }
+        if (!this._APICacheDriver && !this._warnedAboutMissingDriver) {
+            this._log(
+                'No caching driver set. Remember set it as the 3rd argument of OfflineAPI ' +
+                'or use the `setCacheDriver` method before firing requests. Nothing will be cached for now.'
+            );
+            this._warnedAboutMissingDriver = true;
         }
         const { fullPath, withoutQueryParams } = this._constructPath(serviceDefinition, options);
 
@@ -283,14 +289,17 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAPI
      */
     private async _getCachedData (service: string, requestId: string, fullPath: string): Promise<ICachedData> {
-        let serviceDictionary = await this._APIDriver.getItem(this._getServiceDictionaryKey(service));
+        if (!this._APICacheDriver) {
+            return { success: false };
+        }
+        let serviceDictionary = await this._APICacheDriver.getItem(this._getServiceDictionaryKey(service));
         serviceDictionary = JSON.parse(serviceDictionary) || {};
 
         const expiration = serviceDictionary[requestId];
         if (expiration) {
             this._log(`${fullPath} already cached, expiring at : ${expiration}`);
             try {
-                const rawCachedData = await this._APIDriver.getItem(this._getCacheObjectKey(requestId));
+                const rawCachedData = await this._APICacheDriver.getItem(this._getCacheObjectKey(requestId));
                 const parsedCachedData = JSON.parse(rawCachedData);
                 if (expiration > Date.now()) {
                     return { success: true, fresh: true, data: parsedCachedData };
@@ -318,7 +327,9 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAPI
      */
     private _shouldUseCache (serviceDefinition: IAPIService, options: IFetchOptions): boolean {
-        if (options && typeof options.disableCache !== 'undefined') {
+        if (!this._APICacheDriver) {
+            return false;
+        } else if (options && typeof options.disableCache !== 'undefined') {
             return !options.disableCache;
         } else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
             return !serviceDefinition.disableCache;
