@@ -11,7 +11,7 @@ import {
     IFetchResponse,
     ICachedData,
     ICacheDictionary,
-    IAPIDriver,
+    IAPICacheDriver,
     APIMiddleware,
     IMiddlewarePaths,
     IHTTPMethods
@@ -43,9 +43,9 @@ export default class OfflineFirstAPI {
 
     private _APIOptions: IAPIOptions;
     private _APIServices: IAPIServices = {};
-    private _APIDriver: IAPIDriver = DEFAULT_CACHE_DRIVER;
+    private _APICacheDriver: IAPICacheDriver;
 
-    constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPIDriver) {
+    constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPICacheDriver) {
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
@@ -192,8 +192,8 @@ export default class OfflineFirstAPI {
         this._log('services set to', this._APIServices);
     }
 
-    public setCacheDriver (driver: IAPIDriver): void {
-        this._APIDriver = driver;
+    public setCacheDriver (driver: IAPICacheDriver): void {
+        this._APICacheDriver = driver;
         this._log('custom driver set');
     }
 
@@ -240,7 +240,7 @@ export default class OfflineFirstAPI {
         try {
             this._log(`Caching ${requestId} ...`);
             await this._addKeyToServiceDictionary(service, requestId, expiration);
-            await this._APIDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response));
+            await this._APICacheDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response));
             this._log(`Updated cache for request ${requestId}`);
 
             // If capping is enabled for this request, get the service's dictionary cached items.
@@ -248,7 +248,7 @@ export default class OfflineFirstAPI {
             if (shouldCap) {
                 const capLimit = serviceDefinition.capLimit || this._APIOptions.capLimit;
                 const serviceDictionaryKey = this._getServiceDictionaryKey(service);
-                let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
+                let dictionary = await this._APICacheDriver.getItem(serviceDictionaryKey);
                 if (dictionary) {
                     dictionary = JSON.parse(dictionary);
                     const cachedItemsCount = Object.keys(dictionary).length;
@@ -259,8 +259,8 @@ export default class OfflineFirstAPI {
                         );
                         const { key } = this._getOldestCachedItem(dictionary);
                         delete dictionary[key];
-                        await this._APIDriver.removeItem(this._getCacheObjectKey(key));
-                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        await this._APICacheDriver.removeItem(this._getCacheObjectKey(key));
+                        this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                     }
                 }
             }
@@ -339,14 +339,14 @@ export default class OfflineFirstAPI {
     private async _addKeyToServiceDictionary (service: string, requestId: string, expiration: number): Promise<boolean> {
         try {
             const serviceDictionaryKey = this._getServiceDictionaryKey(service);
-            let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
+            let dictionary = await this._APICacheDriver.getItem(serviceDictionaryKey);
             if (!dictionary) {
                 dictionary = {};
             } else {
                 dictionary = JSON.parse(dictionary);
             }
             dictionary[requestId] = expiration;
-            this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+            this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
             return true;
         } catch (err) {
             throw new Error(err);
@@ -389,7 +389,7 @@ export default class OfflineFirstAPI {
             let keys = [];
             const serviceDictionaryKey = this._getServiceDictionaryKey(service);
             keys.push(serviceDictionaryKey);
-            let dictionary = await this._APIDriver.getItem(serviceDictionaryKey);
+            let dictionary = await this._APICacheDriver.getItem(serviceDictionaryKey);
             if (dictionary) {
                 dictionary = JSON.parse(dictionary);
                 const dictionaryKeys = Object.keys(dictionary).map((key: string) => `${this._APIOptions.cachePrefix}:${key}`);

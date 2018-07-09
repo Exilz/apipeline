@@ -1,4 +1,4 @@
-import { IAPIDriver } from '../interfaces';
+import { IAPICacheDriver } from '../interfaces';
 
 type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 type PromiseReject = (error?: any) => void;
@@ -33,7 +33,7 @@ interface IQueryResults {
     rowsAffected: number;
 }
 
-export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): Promise<IAPIDriver> => {
+export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): Promise<IAPICacheDriver> => {
     SQLite.DEBUG(options.debug || false);
     SQLite.enablePromise(true);
 
@@ -60,7 +60,7 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): P
     }
 };
 
-function getItem (db: ISQLiteDatabase): IAPIDriver['getItem'] {
+function getItem (db: ISQLiteDatabase): IAPICacheDriver['getItem'] {
     return (key: string) => {
         return new Promise((resolve: PromiseResolve<any>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
@@ -78,7 +78,7 @@ function getItem (db: ISQLiteDatabase): IAPIDriver['getItem'] {
     };
 }
 
-function setItem (db: ISQLiteDatabase): IAPIDriver['setItem'] {
+function setItem (db: ISQLiteDatabase): IAPICacheDriver['setItem'] {
     return (key: string, value: string) => {
         return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
@@ -94,7 +94,7 @@ function setItem (db: ISQLiteDatabase): IAPIDriver['setItem'] {
     };
 }
 
-function removeItem (db: ISQLiteDatabase): IAPIDriver['removeItem'] {
+function removeItem (db: ISQLiteDatabase): IAPICacheDriver['removeItem'] {
     return (key: string) => {
         return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {

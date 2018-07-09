@@ -13,7 +13,7 @@ export interface IAPIOptions {
     ignoreHeadersWhenCaching?: boolean;
     capServices?: boolean;
     capLimit?: number;
-    offlineDriver?: IAPIDriver;
+    offlineDriver?: IAPICacheDriver;
 };
 
 export interface IAPIService {
@@ -60,7 +60,7 @@ export interface ICacheDictionary {
     [key: string]: number;
 }
 
-export interface IAPIDriver {
+export interface IAPICacheDriver {
     getItem(key: string): Promise<any>;
     setItem(key: string, value: string): Promise<void>;
     removeItem(key: string): Promise<void>;
