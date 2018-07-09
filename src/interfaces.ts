@@ -1,6 +1,7 @@
 export type IHTTPMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
 
 export interface IAPIOptions {
+    fetchMethod: (url: string, options?: any) => Promise<any>;
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
     middlewares?: APIMiddleware[];

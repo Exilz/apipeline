@@ -50,6 +50,13 @@ export default class OfflineFirstAPI {
         driver && this.setCacheDriver(driver);
 
         this._createHTTPMethods();
+
+        if (!this._APIOptions.fetchMethod) {
+            throw new Error(
+                "Your fetch method is undefined. If you're not using react-native " +
+                'make sure to set `fetchMethod` in your API options.'
+            );
+        }
     }
 
     _createHTTPMethods () {
@@ -95,7 +102,7 @@ export default class OfflineFirstAPI {
             expiration = Date.now() + expirationDelay;
             const cachedData = await this._getCachedData(service, requestId, fullPath);
 
-            if (cachedData.success && cachedData.fresh && shouldUseCache) {
+            if (shouldUseCache && cachedData.success && cachedData.fresh) {
                 this._log(`Using fresh cache for ${fullPath}`);
                 return cachedData.data;
             }
@@ -214,7 +221,7 @@ export default class OfflineFirstAPI {
      */
     private async _fetch (url: string, options?: any): Promise<IFetchResponse> {
         try {
-            return { success: true, data: await fetch(url, options) };
+            return { success: true, data: await this._APIOptions.fetchMethod(url, options) };
         } catch (err) {
             return { success: false };
         }
