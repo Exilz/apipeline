@@ -223,6 +223,7 @@ export default class OfflineFirstAPI {
         try {
             return { success: true, data: await this._APIOptions.fetchMethod(url, options) };
         } catch (err) {
+            console.warn(err);
             return { success: false };
         }
     }
