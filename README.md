@@ -23,7 +23,6 @@ Easily write offline-first react-native applications with your own REST API. Thi
     - [Middlewares](#middlewares)
     - [Using your own driver for caching](#using-your-own-driver-for-caching)
     - [Types](#types)
-    - [Roadmap](#roadmap)
 
 ## Installation
 
@@ -141,6 +140,7 @@ A couple of notes :
 Name | Description | Parameters | Return value
 ------ | ------ | ------ | ------
 `fetch` | Fires a network request to one of your service with additional options, see [fetch options](#fetch-options) | `service: string, options?: IFetchOptions` | `Promise<any>`
+`get`, `post`, `head`... | Each HTTP method has a dedicated method that acts just like `fetch` | `service: string, options?: IFetchOptions` | `Promise<any>`
 `fetchHeaders` | Just like `fetch` but only returns the HTTP headers of the reponse | `service: string, options?: IFetchOptions` | `Promise<any>`
 `clearCache` | Clears all the cache, or just the one of a specific service | `service?: string` | `Promise<void>`
 `setOptions` | Sets or update the API options of the wrapper | `options: IAPIOptions` | `void`
@@ -156,6 +156,7 @@ Key | Type | Description | Example
 `domains` | `{ default: string, [key: string]: string }` | **Required**, full URL to your domains | `domains: {default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },`
 `prefixes` | `{ default: string, [key: string]: string }` | **Required**, prefixes your API uses, `default` is required, leave it blank if you don't have any | `{ default: '/api/v1', apiV2: '/api/v2' }`
 `middlewares` | `APIMiddleware[]` | Optionnal middlewares, see [middlewares](#middlewares) | `[authFunc, trackFunc]`
+`responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses, see [middlewares](#middlewares) | `alterFunction`
 `debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing
 `printNetworkRequests` | `boolean` | Optional, prints all your network requests
 `disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
@@ -177,7 +178,8 @@ Key | Type | Description | Example
 `method` | `GET` | Optional HTTP method of your request, defaults to `GET` | `OPTIONS...`
 `domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option
 `prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, , see [middlewares](#middlewares)
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, see [middlewares](#middlewares)
+`responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option, see [middlewares](#middlewares) | `alterFunction`
 `disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
 `capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
 `capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
@@ -199,6 +201,7 @@ Key | Type | Description | Example
 `queryParameters` | `{ [key: string]: string }` | Query parameters that will be appended to your service's path, , see [path and query parameters](#path-and-query-parameters) | `{ refresh: true, orderBy: 'date' }`
 `headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request
 `middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares)
+`responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option and in your service's definition, see [middlewares](#middlewares) | `alterFunction`
 `fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself
 
 ## Path and query parameters
@@ -230,13 +233,3 @@ The URL to your endpoints are being constructed with **your domain name, your op
 Every API interfaces [can be seen here](src/interfaces.ts) so you don't need to poke around the parameters in your console to be aware of what's available to you :)
 
 > 💡 These are Typescript defintions, so they should be displayed in your editor/IDE if it supports it.
-
-## Roadmap
-
-Pull requests are more than welcome for these items, or for any feature that might be missing.
-
-- [ ] Improve capping performance by storing how many items are cached for each service so we don't have to parse the whole service's dictionary each time
-- [ ] Add a method to check for the total size of the cache, which would be useful to trigger a clearing if it reaches a certain size
-- [ ] Add automated testing
-- [x] Thoroughly test custom caching drivers, maybe provide one (realm or sqlite)
-- [x] Write a demo

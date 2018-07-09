@@ -24,5 +24,14 @@ declare module "react-native-offline-api" {
         public setOptions (options: IAPIOptions): void;
         public setServices (services: IAPIServices): void;
         public setCacheDriver (driver: IAPIDriver): void;
+        // HTTP methods shorthands
+        public get (service: string, options?: IFetchOptions): Promise<any>;
+        public head (service: string, options?: IFetchOptions): Promise<any>;
+        public post (service: string, options?: IFetchOptions): Promise<any>;
+        public put (service: string, options?: IFetchOptions): Promise<any>;
+        public delete (service: string, options?: IFetchOptions): Promise<any>;
+        public connect (service: string, options?: IFetchOptions): Promise<any>;
+        public options (service: string, options?: IFetchOptions): Promise<any>;
+        public trace (service: string, options?: IFetchOptions): Promise<any>;
     }
 }

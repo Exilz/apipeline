@@ -1,4 +1,21 @@
 {
-  "name": "OfflineApiDemo",
-  "displayName": "OfflineApiDemo"
+  "expo": {
+    "name": "react-native-offline-api demo",
+    "description": "Basic demonstration of react-native-offline-api features",
+    "slug": "react-native-offline-api-demo",
+    "privacy": "public",
+    "sdkVersion": "25.0.0",
+    "platforms": ["ios", "android"],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    }
+  }
 }

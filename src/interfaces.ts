@@ -1,7 +1,10 @@
+export type IHTTPMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
+
 export interface IAPIOptions {
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
     middlewares?: APIMiddleware[];
+    responseMiddleware?: ResponseMiddleware;
     debugAPI?: boolean;
     printNetworkRequests?: boolean;
     disableCache?: boolean;
@@ -16,10 +19,11 @@ export interface IAPIOptions {
 export interface IAPIService {
     path?: string;
     expiration?: number;
-    method?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
+    method?: IHTTPMethods;
     domain?: string;
     prefix?: string;
     middlewares?: APIMiddleware[];
+    responseMiddleware?: ResponseMiddleware;
     ignoreHeadersWhenCaching?: boolean;
     disableCache?: boolean;
     capService?: boolean;
@@ -37,6 +41,7 @@ export interface IFetchOptions extends IAPIService {
     headers?: { [key: string]: string };
     fetchHeaders?: boolean;
     middlewares?: APIMiddleware[];
+    responseMiddleware: ResponseMiddleware;
     fetchOptions?: any;
 };
 
@@ -68,3 +73,4 @@ export interface IMiddlewarePaths {
 }
 
 export type APIMiddleware = (serviceDefinition: IAPIService, paths: IMiddlewarePaths, options?: IFetchOptions) => any;
+export type ResponseMiddleware = (response: any) => any;

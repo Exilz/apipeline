@@ -1,7 +1,6 @@
 import React, { Component, PropTypes } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import OfflineFirstAPI from 'react-native-offline-api';
-import styles from 'app/src/styles';
 
 const NativeModules = require('NativeModules');
 
@@ -9,13 +8,21 @@ const API_OPTIONS = {
     domains: { default: 'https://icanhazdadjoke.com' },
     prefixes: { default: '' },
     middlewares: [setHeadersMiddleware],
-    debugAPI: false,
+    debugAPI: true,
     printNetworkRequests: true
 };
 
 const API_SERVICES = {
-    random: { path: '', expiration: 5 * 1000 },
-    search: { path: 'search' }
+    random: { path: '', expiration: 5 * 1000, responseMiddleware: (res) => ({ ...res, timestamp: Date.now() }) },
+    search: {
+        path: 'search',
+        responseMiddleware: (res) => (
+            {
+                ...res,
+                results: res.results.map((result) => ({ ...result, timestamp: Date.now()} ))
+            }
+        )
+    }
 };
 
 const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES);
@@ -36,9 +43,12 @@ export default class Demo extends Component {
     }
 
     async _fetchRandomJoke () {
+      // api.get('random', { disableCache: true });
+      // return;
+      // api.get('random', { disableCache: true });
         try {
             this.setState({ randomJokeStatus: 1, searchJokeStatus: 0, fetchStart: Date.now() });
-            const req = await api.fetch('random');
+            const req = await api.get('random');
 
             if (req.status === 200) {
                 this.setState({ randomJokeStatus: 2, randomJoke: req, fetchEnd: Date.now() });
@@ -53,7 +63,7 @@ export default class Demo extends Component {
     async _searchJoke (term) {
         try {
             this.setState({ searchJokeStatus: 1, randomJokeStatus: 0, fetchStart: Date.now() });
-            const req = await api.fetch('search', { queryParameters: { term } });
+            const req = await api.get('search', { queryParameters: { term } });
 
             if (req.status === 200 && req.results && req.results.length) {
                 this.setState({ searchJokeStatus: 2, searchedJokes: req.results, fetchEnd: Date.now() });
@@ -82,11 +92,22 @@ export default class Demo extends Component {
         );
     }
 
+    get description () {
+      return (
+        <ScrollView style={styles.descriptionContainer}>
+          <Text style={styles.desc}>This demo showcases a very basic usage of the plugin. It uses the default cache driver (AsyncStorage).</Text>
+          <Text style={styles.desc}>Two endpoints are registered as services (random & search). Both are using the GET method.</Text>
+          <Text style={styles.desc}>You can see how fast the cache resolution is once your request has already been fired and when its cached data is fresh...</Text>
+          <Text style={styles.desc}>Restart this application with your phone in offline mode to see how easy it is to make your app offline-first !</Text>
+        </ScrollView>
+      );
+    }
+
     get btns () {
         return (
             <View style={styles.btnsContainer}>
-                { this.btn(this._fetchRandomJoke, 'Fetch a random dad joke', styles.fetchBtn) }
-                { this.btn(() => { this._searchJoke('dogs') }, 'Look for a joke about dogs', styles.fetchBtn) }
+                { this.btn(this._fetchRandomJoke, 'Fetch a random dad joke \n (cache expires after 5sec)', styles.fetchBtn) }
+                { this.btn(() => { this._searchJoke('dogs') }, "Look for a joke about dogs \n (default 5' expiration)", styles.fetchBtn) }
                 { this.btn(this._clearCache, 'Clear cache', styles.clearBtn) }
             </View>
         );
@@ -104,11 +125,12 @@ export default class Demo extends Component {
                 <Text>Loading the dadliest dad joke...</Text>
             );
         } else if (randomJokeStatus === 2 && randomJoke ) {
-            const { id, joke } = randomJoke;
+            const { id, joke, timestamp } = randomJoke;
             content = (
                 <View style={styles.jokeContainer}>
                     <Text>Joke id : { id}</Text>
                     <Text>Joke fetched in { fetchEnd - fetchStart } ms</Text>
+                    <Text>Joke parsed at date : { timestamp } (added to response through responseMiddleware)</Text>
                     <Text>{ joke }</Text>
                 </View>
             );
@@ -136,12 +158,14 @@ export default class Demo extends Component {
                 <Text>Looking for dad jokes...</Text>
             );
         } else if (searchJokeStatus === 2 && searchedJokes ) {
+            console.log('SEARCHED JOKES', searchedJokes)
             content = searchedJokes.map((result, index) => {
-                const { id, joke } = result;
+                const { id, joke, timestamp } = result;
                 return (
                     <View style={styles.jokeContainer} key={`key-${index}`}>
                         <Text>Joke id : { id}</Text>
                         <Text>Joke fetched in { fetchEnd - fetchStart } ms</Text>
+                        <Text>Joke parsed at date : { timestamp } (added to response through responseMiddleware)</Text>
                         <Text>{ joke }</Text>
                     </View>
                 );
@@ -152,7 +176,7 @@ export default class Demo extends Component {
             );
         }
         return (
-            <ScrollView contentContainerStyle={styles.randomJokeContainer}>
+            <ScrollView style={styles.randomJokeContainer}>
                 { content }
             </ScrollView>
         );
@@ -162,6 +186,7 @@ export default class Demo extends Component {
         return (
             <View style={styles.container}>
                 <Text style={styles.title}>react-native-offline-api</Text>
+                { this.description }
                 { this.btns }
                 { this.randomJoke }
                 { this.searchedJokes }
@@ -169,3 +194,55 @@ export default class Demo extends Component {
         );
     }
 }
+
+const styles = StyleSheet.create({
+  container: {
+      flex: 1,
+      backgroundColor: '#ACCFCC',
+      padding: 40
+  },
+  title: {
+      textAlign: 'center',
+      color: '#FFFFFF',
+      fontSize: 18,
+      marginBottom: 10
+  },
+  descriptionContainer: {
+      flex: 1
+  },
+  desc: {
+    marginBottom: 5
+  },
+  btnsContainer: {
+      flex: 1,
+      marginVertical: 10
+  },
+  btn: {
+      alignSelf: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'white',
+      width: '75%',
+      height: 50,
+      marginVertical: 10
+  },
+  btnLabel: {
+      textAlign: 'center',
+      color: '#FFFFFF',
+      fontSize: 15
+  },
+  clearBtn: {
+      backgroundColor: '#8A0917'
+  },
+  fetchBtn: {
+      backgroundColor: '#595241'
+  },
+  randomJokeContainer: {
+      flex: 1,
+      marginTop: 30
+  },
+  jokeContainer: {
+      flex: 1,
+      padding: 5,
+      marginBottom: 10
+  }
+});

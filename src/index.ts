@@ -13,7 +13,8 @@ import {
     ICacheDictionary,
     IAPIDriver,
     APIMiddleware,
-    IMiddlewarePaths
+    IMiddlewarePaths,
+    IHTTPMethods
 } from './interfaces';
 
 const DEFAULT_API_OPTIONS = {
@@ -35,6 +36,7 @@ const DEFAULT_SERVICE_OPTIONS = {
 };
 
 const DEFAULT_CACHE_DRIVER = AsyncStorage;
+const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 
 export const drivers = { sqliteDriver };
 export default class OfflineFirstAPI {
@@ -47,9 +49,17 @@ export default class OfflineFirstAPI {
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
+
+        this._createHTTPMethods();
     }
 
-    public async fetch (service: string, options?: IFetchOptions): Promise<any> {
+    _createHTTPMethods () {
+        HTTP_METHODS.forEach((method: IHTTPMethods) => {
+            this[method.toLocaleLowerCase()] = async (...args: any[]) => this.fetch(args[0], args[1], method);
+        });
+    }
+
+    public async fetch (service: string, options?: IFetchOptions, forcedHTTPMethod?: IHTTPMethods): Promise<any> {
         const serviceDefinition: IAPIService = this._APIServices[service];
         if (!serviceDefinition) {
             throw new Error(`Cannot fetch data from unregistered service '${service}'`);
@@ -65,7 +75,7 @@ export default class OfflineFirstAPI {
             const fetchOptions = _merge(
                 middlewares,
                 (options && options.fetchOptions) || {},
-                { method: serviceDefinition.method },
+                { method: forcedHTTPMethod || serviceDefinition.method },
                 { headers: (options && options.headers) || {} }
             );
             const fetchHeaders = options && options.fetchHeaders;
@@ -85,7 +95,7 @@ export default class OfflineFirstAPI {
             }
 
             // Network fetch
-            this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options);
+            this._logNetwork(serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod);
             this._log('full URL for request', fullPath);
             this._log('full fetch options for request', fetchOptions);
             let parsedResponseData;
@@ -105,7 +115,18 @@ export default class OfflineFirstAPI {
             if (fetchHeaders) {
                 parsedResponseData = res.data.headers && res.data.headers.map ? res.data.headers.map : {};
             } else {
-                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ? res.data : await res.data.json();
+                parsedResponseData = (options && options.rawData) || serviceDefinition.rawData ?
+                    res.data :
+                    await res.data.json();
+
+                const responseMiddleware =
+                    (options && options.responseMiddleware) ||
+                    serviceDefinition.responseMiddleware ||
+                    this._APIOptions.responseMiddleware;
+
+                if (responseMiddleware) {
+                    parsedResponseData = await responseMiddleware(parsedResponseData);
+                }
             }
 
             // Cache if it hasn't been disabled and if the network request has been successful
@@ -232,7 +253,10 @@ export default class OfflineFirstAPI {
                     dictionary = JSON.parse(dictionary);
                     const cachedItemsCount = Object.keys(dictionary).length;
                     if (cachedItemsCount > capLimit) {
-                        this._log(`service ${service} cap reached (${cachedItemsCount} / ${capLimit}), removing the oldest cached item...`);
+                        this._log(
+                            `service ${service} cap reached (${cachedItemsCount} / ${capLimit})` +
+                            ', removing the oldest cached item...'
+                        );
                         const { key } = this._getOldestCachedItem(dictionary);
                         delete dictionary[key];
                         await this._APIDriver.removeItem(this._getCacheObjectKey(key));
@@ -408,7 +432,11 @@ export default class OfflineFirstAPI {
      * @returns {Promise<any>}
      * @memberof OfflineFirstAPI
      */
-    private async _applyMiddlewares (serviceDefinition: IAPIService, paths: IMiddlewarePaths, options?: IFetchOptions): Promise<any> {
+    private async _applyMiddlewares (
+        serviceDefinition: IAPIService,
+        paths: IMiddlewarePaths,
+        options?: IFetchOptions
+    ): Promise<any> {
         // Middleware priority : options parameter of fetch() > service definition middleware > global middleware.
         let middlewares = (options && options.middlewares) || serviceDefinition.middlewares || this._APIOptions.middlewares;
         if (middlewares && middlewares.length) {
@@ -569,11 +597,17 @@ export default class OfflineFirstAPI {
      * @param {IFetchOptions} [options]
      * @memberof OfflineFirstAPI
      */
-    private _logNetwork (serviceDefinition: IAPIService, fullPath: string, fetchHeaders: boolean, options?: IFetchOptions): void {
+    private _logNetwork (
+        serviceDefinition: IAPIService,
+        fullPath: string,
+        fetchHeaders: boolean,
+        options?: IFetchOptions,
+        forcedHTTPMethod?: IHTTPMethods
+    ): void {
         if (this._APIOptions.printNetworkRequests) {
             console.log(
                 `%c Network request ${fetchHeaders ? '(headers only)' : ''} for ${fullPath} ` +
-                `(${(options && options.method) || serviceDefinition.method})`,
+                `(${forcedHTTPMethod || (options && options.method) || serviceDefinition.method})`,
                 'font-weight: bold; color: blue'
             );
         }
