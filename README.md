@@ -1,18 +1,19 @@
-# react-native-offline-api
+# SEACU
+*Super Easy API Caching Utility*
 
-Simple, customizable, offline-first API wrapper for react-native.
-
-Easily write offline-first react-native applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver...
+Easily write offline-first react-native and web applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver... and works in isomorphic (universal) environments.
 
 ## Table of contents
 
-- [react-native-offline-api](#react-native-offline-api)
+- [SEACU](#seacu)
     - [Table of contents](#table-of-contents)
     - [Installation](#installation)
     - [How it works](#how-it-works)
     - [How to use](#how-to-use)
         - [Setting up your global API options](#setting-up-your-global-api-options)
+        - [Setting your fetch method](#setting-your-fetch-method)
         - [Declaring your services definitions](#declaring-your-services-definitions)
+        - [Setting your cache driver](#setting-your-cache-driver)
         - [Firing your first request](#firing-your-first-request)
     - [Methods](#methods)
     - [API options](#api-options)
@@ -27,8 +28,8 @@ Easily write offline-first react-native applications with your own REST API. Thi
 ## Installation
 
 ```
-npm install --save react-native-offline-api # with npm
-yarn add react-native-offline-api # with yarn
+npm install --save seacu # with npm
+yarn add seacu # with yarn
 ```
 
 ## How it works
@@ -46,6 +47,7 @@ Here's an example :
 
 ```javascript
 const API_OPTIONS = {
+    fetchMethod: yourFetchMethod, // documented below
     domains: { default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },
     prefixes: { default: '/api/v1', apiV2: '/api/v2' },
     debugAPI: true,
@@ -58,6 +60,16 @@ Here, we have set up the wrapper so it can use 2 different domains, a production
 We also have 2 different prefixes, so, if you're versioning your APIs by appending `/v2` in your URLs for example, you'll be able to easily request each versions. Please note that this is totally optional.
 
 **[Check out all the API options here](#api-options)**
+
+### Setting your fetch method
+
+Since you can use *seacu* in any javascript environement (react—native / browsers / node.js), you need to tell the plugin which function it should use to fetch data.
+
+You can use anything you want as long as it follows the [fetch specification](https://fetch.spec.whatwg.org/).
+
+* When using `react-native` : it's easy, just use `fetch` which is defined globally
+* On the browser : you can use `fetch` on the most recent browser or use a polyfill like [unfetch](https://www.npmjs.com/package/unfetch) or [whatwg-fetch](https://www.npmjs.com/package/whatwg-fetch)
+* In node.js : you *need* a `fetch` polyfill like [node-fetch](https://www.npmjs.com/package/node-fetch)
 
 ### Declaring your services definitions
 
@@ -90,17 +102,55 @@ Here, we declared 3 services :
 
 These are just examples, **there are much more options for your services, [check them out here](#services-options).**
 
+### Setting your cache driver
+
+This step is optional, but if you want the wrapper to handle all of the offline goodness for you, you have to tell the plugin which cache driver it should use.
+
+In order to do that, just pass your driver as the 3rd argument of SEACU when instantiating your api, or use `api.setCacheDriver`.
+
+* When using `react-native`: you can import `AsyncStorage` or use the baked-in [sqlite driver](docs/custom-drivers.md#sqlite-driver)
+* On the browser : the trusty [`localforage`](https://www.npmjs.com/package/localforage) plugin is usually a good choice
+* In node.js : no cache driver has been written for now but we would gladly accept pull requests regarding this feature
+
+Examples :
+
+In `react-native` : 
+
+```javascript
+import { AsyncStorage } from 'react-native';
+import SEACU from 'seacu';
+
+const api = new SEACU(API_OPTIONS, API_SERVICES, AsyncStorage);
+```
+
+In an isomorphic setting (next.js for instance): 
+
+```javascript
+import SEACU from 'react-native-offline-api';
+import clientFetch from 'unfetch';
+import serverFetch from 'isomorphic-unfetch';
+import localforage from 'localforage';
+
+const isServer = typeof window === 'undefined';
+
+// ... API and services configuration
+
+const api = isServer ?
+    new SEACU(API_OPTIONS, API_SERVICES) :
+    new SEACU(API_OPTIONS, API_SERVICES, localforage);
+
+export default api;
+```
+
 ### Firing your first request
 
 Now that we have our API options and services configured, let's call our API !
 
 ```javascript
 import React, { Component } from 'react';
-import OfflineFirstAPI from 'react-native-offline-api';
+import SEACU from 'seacu';
 
-// ... API and services configurations
-
-const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES);
+// ... API and services configurations and instantiation
 
 export default class demo extends Component {
 
@@ -110,7 +160,7 @@ export default class demo extends Component {
 
     async fetchSampleData () {
         try {
-            const request = await api.fetch(
+            const request = await api.get(
                 'documents',
                 {
                     pathParameters: { documentId: 'xSfdk21' }
@@ -132,8 +182,8 @@ In this short example, we're firing a `GET` request on the path `http://staging.
 
 A couple of notes :
 
-* The `fetch` and `fetchHeaders` methods are promises, which means you can either use `async/await` or `fetch().then().catch()` if you prefer.
-* You can instantiate `OfflineFirstAPI` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
+* The `get`, `post`, `fetch`, `fetchHeaders`... methods are promises, which means you can either use `async/await` or `get().then().catch()` if you prefer.
+* You can instantiate `SEACU` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
 
 ## Methods
 
