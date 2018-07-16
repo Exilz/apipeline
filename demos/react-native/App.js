@@ -5,6 +5,7 @@ import OfflineFirstAPI from 'react-native-offline-api';
 const NativeModules = require('NativeModules');
 
 const API_OPTIONS = {
+    fetchMethod: fetch, // use react native's fetch
     domains: { default: 'https://icanhazdadjoke.com' },
     prefixes: { default: '' },
     middlewares: [setHeadersMiddleware],
@@ -43,9 +44,6 @@ export default class Demo extends Component {
     }
 
     async _fetchRandomJoke () {
-      // api.get('random', { disableCache: true });
-      // return;
-      // api.get('random', { disableCache: true });
         try {
             this.setState({ randomJokeStatus: 1, searchJokeStatus: 0, fetchStart: Date.now() });
             const req = await api.get('random');
@@ -158,7 +156,6 @@ export default class Demo extends Component {
                 <Text>Looking for dad jokes...</Text>
             );
         } else if (searchJokeStatus === 2 && searchedJokes ) {
-            console.log('SEARCHED JOKES', searchedJokes)
             content = searchedJokes.map((result, index) => {
                 const { id, joke, timestamp } = result;
                 return (
@@ -185,7 +182,7 @@ export default class Demo extends Component {
     render () {
         return (
             <View style={styles.container}>
-                <Text style={styles.title}>react-native-offline-api</Text>
+                <Text style={styles.title}>SEACU</Text>
                 { this.description }
                 { this.btns }
                 { this.randomJoke }
