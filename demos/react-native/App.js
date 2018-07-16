@@ -1,8 +1,6 @@
-import React, { Component, PropTypes } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import React, { Component } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, AsyncStorage } from 'react-native';
 import OfflineFirstAPI from 'react-native-offline-api';
-
-const NativeModules = require('NativeModules');
 
 const API_OPTIONS = {
     fetchMethod: fetch, // use react native's fetch
@@ -26,7 +24,7 @@ const API_SERVICES = {
     }
 };
 
-const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES);
+const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES, AsyncStorage);
 
 async function setHeadersMiddleware () {
     // This doesn't need a middleware, it's just an example
