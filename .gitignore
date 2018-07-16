@@ -2,3 +2,4 @@ node_modules/
 *.log
 demos/web/.next
 yarn.lock
+demos/web/package-lock.json

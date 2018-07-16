@@ -1,0 +1,21 @@
+{
+  "name": "offline-api-web-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "isomorphic-unfetch": "^2.0.0",
+    "localforage": "^1.7.2",
+    "next": "^6.1.1",
+    "react": "^16.4.1",
+    "react-dom": "^16.4.1",
+    "react-native-offline-api": "3.0.0",
+    "unfetch": "3.0.0"
+  }
+}
