@@ -54,7 +54,7 @@ exports.default = function (SQLite, options) { return __awaiter(_this, void 0, v
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, SQLite.openDatabase(__assign({ name: 'offlineapi.db', location: 'default' }, (options.openDatabaseOptions || {})))];
+                return [4 /*yield*/, SQLite.openDatabase(__assign({ name: 'apipeline.db', location: 'default' }, (options.openDatabaseOptions || {})))];
             case 2:
                 db = _a.sent();
                 db.transaction(function (tx) {
@@ -67,7 +67,7 @@ exports.default = function (SQLite, options) { return __awaiter(_this, void 0, v
                     }];
             case 3:
                 err_1 = _a.sent();
-                throw new Error("react-native-offline-api : Cannot open SQLite database : " + err_1 + ". Check your SQLite configuration.");
+                throw new Error("APIPeline : Cannot open SQLite database : " + err_1 + ". Check your SQLite configuration.");
             case 4: return [2 /*return*/];
         }
     });
