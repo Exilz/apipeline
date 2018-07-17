@@ -198,22 +198,24 @@ Name | Description | Parameters | Return value
 
 ## API options
 
-These are the global options for the wrapper. Some of them can be overriden at the service definition level, or with the `option` parameter of the `fetch` method. **Only `domains` and `prefixes` are required.**
+These are the global options for the wrapper. Some of them can be overriden at the service definition level, or with the `option` parameter of the `fetch` method. **Only `fetchMethod`, `domains` and `prefixes` are required.**
 
 Key | Type | Description | Example
 ------ | ------ | ------ | ------
+`fetchMethod` | `function` [read more here](#setting-your-fetch-method) | **Required**, a [spec compliant](https://fetch.spec.whatwg.org/) function | an imported fetch polyfill
 `domains` | `{ default: string, [key: string]: string }` | **Required**, full URL to your domains | `domains: {default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },`
 `prefixes` | `{ default: string, [key: string]: string }` | **Required**, prefixes your API uses, `default` is required, leave it blank if you don't have any | `{ default: '/api/v1', apiV2: '/api/v2' }`
+`encodeParameters` | `boolean` | Optional, automatically encodes UTF8 chars in `queryParameters` & `pathParameters` | `true` (defaults to `false`)
 `middlewares` | `APIMiddleware[]` | Optionnal middlewares, see [middlewares](#middlewares) | `[authFunc, trackFunc]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses, see [middlewares](#middlewares) | `alterFunction`
-`debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing
-`printNetworkRequests` | `boolean` | Optional, prints all your network requests
-`disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
-`cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter)
-`cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache`
-`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
-`capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`capLimit` | `number` | Optional quantity of cached items for each service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
+`debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing | `true` (defaults to `false`)
+`printNetworkRequests` | `boolean` | Optional, prints all your network requests | `true` (defaults to `false`)
+`disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter) | `true` (defaults to `false`)
+`cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter) | `5 * 60 * 1000`
+`cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache` | `'myOwnCache'` (defaults to `APIPelineCache`)
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
+`capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `true` (defaults to `false`)
+`capLimit` | `number` | Optional quantity of cached items for each service, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `100` (defaults to `50`)
 
 ## Services options
 
@@ -222,17 +224,17 @@ These are the options for each of your services, **the only required key is `pat
 Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `path` | `string` | Required path to your endpoint, see [path and query parameters](#path-and-query-parameters) | `article/:articleId`
-`expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes
+`expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes | `5 * 60 * 1000`
 `method` | `GET` | Optional HTTP method of your request, defaults to `GET` | `OPTIONS...`
-`domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option
-`prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, see [middlewares](#middlewares)
+`domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option | `staging`
+`prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option | `apiV2`
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, see [middlewares](#middlewares) | `[serviceSpecificMiddleware]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option, see [middlewares](#middlewares) | `alterFunction`
-`disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
-`capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
-`rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api
+`disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options)) | `true` (defaults to `false`)
+`capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `true` (defaults to `false`)
+`capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `42` (defaults to `50`)
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
+`rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api | `true` (defaults to `false`)
 
 ## Fetch options
 
@@ -247,10 +249,10 @@ Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `pathParameters` | `{ [key: string]: string }` | Parameters to replace in your path, see [path and query parameters](#path-and-query-parameters) | `{ documentId: 'xSfdk21' }`
 `queryParameters` | `{ [key: string]: string }` | Query parameters that will be appended to your service's path, , see [path and query parameters](#path-and-query-parameters) | `{ refresh: true, orderBy: 'date' }`
-`headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares)
+`headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request | `{ 'User-Agent': 'My very own agent' }`
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares) | `[superSpecificMiddleware]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option and in your service's definition, see [middlewares](#middlewares) | `alterFunction`
-`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself
+`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself | `{ body: 'user_email=hey@itsme.org' }` (`POST` request example)
 
 ## Path and query parameters
 
