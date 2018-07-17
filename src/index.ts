@@ -59,12 +59,6 @@ export default class OfflineFirstAPI {
         }
     }
 
-    _createHTTPMethods () {
-        HTTP_METHODS.forEach((method: IHTTPMethods) => {
-            this[method.toLocaleLowerCase()] = async (...args: any[]) => this.fetch(args[0], args[1], method);
-        });
-    }
-
     public async fetch (service: string, options?: IFetchOptions, forcedHTTPMethod?: IHTTPMethods): Promise<any> {
         const serviceDefinition: IAPIService = this._APIServices[service];
         if (!serviceDefinition) {
@@ -211,6 +205,12 @@ export default class OfflineFirstAPI {
     public setCacheDriver (driver: IAPICacheDriver): void {
         this._APICacheDriver = driver;
         this._log('custom driver set');
+    }
+
+    private _createHTTPMethods () {
+        HTTP_METHODS.forEach((method: IHTTPMethods) => {
+            this[method.toLocaleLowerCase()] = async (...args: any[]) => this.fetch(args[0], args[1], method);
+        });
     }
 
     /**
