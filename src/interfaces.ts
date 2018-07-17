@@ -4,6 +4,7 @@ export interface IAPIOptions {
     fetchMethod: (url: string, options?: any) => Promise<any>;
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
+    encodeParameters?: boolean;
     middlewares?: APIMiddleware[];
     responseMiddleware?: ResponseMiddleware;
     debugAPI?: boolean;

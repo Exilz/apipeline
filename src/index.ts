@@ -19,6 +19,7 @@ import {
 const DEFAULT_API_OPTIONS = {
     debugAPI: false,
     prefixes: { default: '/' },
+    encodeParameters: false,
     printNetworkRequests: false,
     disableCache: false,
     cacheExpiration: 5 * 60 * 1000,
@@ -28,7 +29,7 @@ const DEFAULT_API_OPTIONS = {
     capLimit: 50
 };
 
-const DEFAULT_SERVICE_OPTIONS = {
+const DEFAULT_SERVICE_OPTIONS: IAPIService = {
     method: 'GET',
     domain: 'default',
     prefix: 'default'
@@ -532,6 +533,7 @@ export default class OfflineFirstAPI {
      * @memberof OfflineFirstAPI
      */
     private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): any {
+        const { encodeParameters } = this._APIOptions;
         let path = serviceDefinition.path;
         let parsedQueryParameters = '';
 
@@ -540,6 +542,9 @@ export default class OfflineFirstAPI {
             for (let i in pathParameters) {
                 if (typeof pathParameters[i] === 'undefined') {
                     continue;
+                }
+                if (encodeParameters) {
+                    pathParameters[i] = encodeURIComponent(pathParameters[i]);
                 }
                 path = path.replace(`:${i}`, pathParameters[i]);
             }
@@ -550,6 +555,9 @@ export default class OfflineFirstAPI {
             for (let i in queryParameters) {
                 if (typeof queryParameters[i] === 'undefined') {
                     continue;
+                }
+                if (encodeParameters) {
+                    queryParameters[i] = encodeURIComponent(queryParameters[i]);
                 }
                 parsedQueryParameters += insertedQueryParameters === 0 ?
                     `?${i}=${queryParameters[i]}` :
