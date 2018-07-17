@@ -40,7 +40,7 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): P
     try {
         const db: ISQLiteDatabase = await SQLite.openDatabase(
             {
-                name: 'offlineapi.db',
+                name: 'apipeline.db',
                 location: 'default',
                 ...(options.openDatabaseOptions || {})
             }
@@ -56,7 +56,7 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): P
             removeItem: removeItem(db)
         };
     } catch (err) {
-        throw new Error(`react-native-offline-api : Cannot open SQLite database : ${err}. Check your SQLite configuration.`);
+        throw new Error(`APIPeline : Cannot open SQLite database : ${err}. Check your SQLite configuration.`);
     }
 };
 

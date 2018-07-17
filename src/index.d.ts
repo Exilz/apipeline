@@ -11,12 +11,12 @@ import {
 
 import { ISQLiteBinding, ISQLiteDriverOptions } from './drivers/sqlite';
 
-declare module "react-native-offline-api" {
+declare module "apipeline" {
     export const drivers: {
         sqliteDriver: (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions) => Promise<IAPICacheDriver>
     };
 
-    export default class OfflineFirstAPI {
+    export default class APIPeline {
         constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPICacheDriver);
         public fetch (service: string, options?: IFetchOptions): Promise<any>;
         public fetchHeaders (service: string, options?: IFetchOptions): Promise<any>;

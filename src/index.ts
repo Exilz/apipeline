@@ -23,7 +23,7 @@ const DEFAULT_API_OPTIONS = {
     printNetworkRequests: false,
     disableCache: false,
     cacheExpiration: 5 * 60 * 1000,
-    cachePrefix: 'offlineApiCache',
+    cachePrefix: 'APIPelineCache',
     ignoreHeadersWhenCaching: false,
     capServices: false,
     capLimit: 50
@@ -38,7 +38,7 @@ const DEFAULT_SERVICE_OPTIONS: IAPIService = {
 const HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 
 export const drivers = { sqliteDriver };
-export default class OfflineFirstAPI {
+export default class APIpeline {
 
     private _APIOptions: IAPIOptions;
     private _APIServices: IAPIServices = {};
@@ -54,8 +54,8 @@ export default class OfflineFirstAPI {
 
         if (!this._APIOptions.fetchMethod) {
             throw new Error(
-                "Your fetch method is undefined. If you're not using react-native " +
-                'make sure to set `fetchMethod` in your API options.'
+                'Your fetch method is undefined. make sure to set `fetchMethod` in your API options. ' +
+                'Check out the documentation to find setting examples for the browser / node / react-native'
             );
         }
     }
@@ -67,7 +67,7 @@ export default class OfflineFirstAPI {
         }
         if (!this._APICacheDriver && !this._warnedAboutMissingDriver) {
             this._log(
-                'No caching driver set. Remember set it as the 3rd argument of OfflineAPI ' +
+                'No caching driver set. Remember set it as the 3rd argument of APIPeline ' +
                 'or use the `setCacheDriver` method before firing requests. Nothing will be cached for now.'
             );
             this._warnedAboutMissingDriver = true;
@@ -193,7 +193,7 @@ export default class OfflineFirstAPI {
         if (!this._APIOptions.domains.default) {
             throw new Error(
                 "You didn't set your default domain URL in your options. \n " +
-                "new OfflineFirstAPI({ domains: { default: 'http://myApi.net' } }, ...)"
+                "new APIpeline({ domains: { default: 'http://myApi.net' } }, ...)"
             );
         }
     }
@@ -221,7 +221,7 @@ export default class OfflineFirstAPI {
      * @param {string} url
      * @param {*} [options]
      * @returns {Promise<IFetchResponse>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _fetch (url: string, options?: any): Promise<IFetchResponse> {
         try {
@@ -241,7 +241,7 @@ export default class OfflineFirstAPI {
      * @param {*} response
      * @param {number} expiration
      * @returns {(Promise<void|boolean>)}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _cache (
         serviceDefinition: IAPIService,
@@ -298,7 +298,7 @@ export default class OfflineFirstAPI {
      * @param {string} requestId
      * @param {string} fullPath
      * @returns {Promise<ICachedData>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _getCachedData (service: string, requestId: string, fullPath: string, shouldUseCache: boolean): Promise<ICachedData> {
         if (!this._APICacheDriver || !shouldUseCache) {
@@ -336,7 +336,7 @@ export default class OfflineFirstAPI {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} options
      * @returns {boolean}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _shouldUseCache (serviceDefinition: IAPIService, options: IFetchOptions): boolean {
         if (!this._APICacheDriver) {
@@ -357,7 +357,7 @@ export default class OfflineFirstAPI {
      * @param {string} requestId
      * @param {number} expiration
      * @returns {Promise<boolean>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _addKeyToServiceDictionary (service: string, requestId: string, expiration: number): Promise<boolean> {
         try {
@@ -382,7 +382,7 @@ export default class OfflineFirstAPI {
      * @private
      * @param {ICacheDictionary} dictionary
      * @returns {*}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _getOldestCachedItem (dictionary: ICacheDictionary): any {
         let oldest;
@@ -405,7 +405,7 @@ export default class OfflineFirstAPI {
      * @private
      * @param {string} service
      * @returns {Promise<string[]>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _getAllKeysForService (service: string): Promise<string[]> {
         try {
@@ -429,7 +429,7 @@ export default class OfflineFirstAPI {
      * @private
      * @param {string} service
      * @returns {string}
-     * @memberof OfflineFirstAP
+     * @memberof APIPeline
      */
     private _getServiceDictionaryKey (service: string): string {
         return `${this._APIOptions.cachePrefix}:dictionary:${service}`;
@@ -440,7 +440,7 @@ export default class OfflineFirstAPI {
      * @private
      * @param {string} requestId
      * @returns {string}
-     * @memberof OfflineFirstAP
+     * @memberof APIPeline
      */
     private _getCacheObjectKey (requestId: string): string {
         return `${this._APIOptions.cachePrefix}:${requestId}`;
@@ -453,7 +453,7 @@ export default class OfflineFirstAPI {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {Promise<any>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private async _applyMiddlewares (
         serviceDefinition: IAPIService,
@@ -505,7 +505,7 @@ export default class OfflineFirstAPI {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {string}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _constructPath (serviceDefinition: IAPIService, options?: IFetchOptions): IMiddlewarePaths {
         const domainKey = (options && options.domain) || serviceDefinition.domain;
@@ -530,7 +530,7 @@ export default class OfflineFirstAPI {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {string}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): any {
         const { encodeParameters } = this._APIOptions;
@@ -576,7 +576,7 @@ export default class OfflineFirstAPI {
      * @private
      * @param {IAPIOptions} options
      * @returns {IAPIOptions}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _mergeAPIOptionsWithDefaultValues (options: IAPIOptions): IAPIOptions {
         return {
@@ -595,20 +595,20 @@ export default class OfflineFirstAPI {
      * @private
      * @param {IAPIServices} services
      * @returns {IAPIServices}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _mergeServicesWithDefaultValues (services: IAPIServices): IAPIServices {
         return _mapValues(services, (service: IAPIService, serviceName: string) => {
             if (service.domain && typeof this._APIOptions.domains[service.domain] === 'undefined') {
                 throw new Error(
                     `Domain key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
-                    'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'
+                    'Please provide it in your APIpeline parameters or leave it blank to use the default one.'
                 );
             }
             if (service.prefix && typeof this._APIOptions.prefixes[service.prefix] === 'undefined') {
                 throw new Error(
                     `Prefix key ${service.domain} specified for service ${serviceName} hasn't been declared. \n` +
-                    'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.'
+                    'Please provide it in your APIpeline parameters or leave it blank to use the default one.'
                 );
             }
             return {
@@ -624,7 +624,7 @@ export default class OfflineFirstAPI {
      * @param {IAPIService} serviceDefinition
      * @param {boolean} fetchHeaders
      * @param {IFetchOptions} [options]
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _logNetwork (
         serviceDefinition: IAPIService,
@@ -647,14 +647,14 @@ export default class OfflineFirstAPI {
      * @private
      * @param {string} msg
      * @param {*} [value]
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
     private _log (msg: string, value?: any): void {
         if (this._APIOptions.debugAPI) {
             if (value) {
-                console.log(`OfflineFirstAPI | ${msg}`, value);
+                console.log(`APIpeline | ${msg}`, value);
             } else {
-                console.log(`OfflineFirstAPI | ${msg}`);
+                console.log(`APIpeline | ${msg}`);
             }
         }
     }
