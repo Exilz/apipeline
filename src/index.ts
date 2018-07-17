@@ -94,15 +94,18 @@ export default class OfflineFirstAPI {
             const fetchHeaders = options && options.fetchHeaders;
             const shouldUseCache = this._shouldUseCache(serviceDefinition, options);
             let expiration;
-            const requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
+            let requestId;
+            if (shouldUseCache) {
+                requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
 
-            // Expiration priority : option parameter of fetch() > service definition > default setting
-            const expirationDelay =
-                (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
-            expiration = Date.now() + expirationDelay;
-            const cachedData = await this._getCachedData(service, requestId, fullPath);
+                // Expiration priority : option parameter of fetch() > service definition > default setting
+                const expirationDelay =
+                    (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
+                expiration = Date.now() + expirationDelay;
+            }
+            const cachedData = await this._getCachedData(service, requestId, fullPath, shouldUseCache);
 
-            if (shouldUseCache && cachedData.success && cachedData.fresh) {
+            if (cachedData.success && cachedData.fresh) {
                 this._log(`Using fresh cache for ${fullPath}`);
                 return cachedData.data;
             }
@@ -296,8 +299,8 @@ export default class OfflineFirstAPI {
      * @returns {Promise<ICachedData>}
      * @memberof OfflineFirstAPI
      */
-    private async _getCachedData (service: string, requestId: string, fullPath: string): Promise<ICachedData> {
-        if (!this._APICacheDriver) {
+    private async _getCachedData (service: string, requestId: string, fullPath: string, shouldUseCache: boolean): Promise<ICachedData> {
+        if (!this._APICacheDriver || !shouldUseCache) {
             return { success: false };
         }
         let serviceDictionary = await this._APICacheDriver.getItem(this._getServiceDictionaryKey(service));
@@ -491,7 +494,6 @@ export default class OfflineFirstAPI {
                 requestStringId += JSON.stringify(mergedOptions[key]);
             }
         });
-
         _sha.update(requestStringId);
         return _sha.getHash('HEX');
     }
