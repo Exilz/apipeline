@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "react-native-offline-api demo",
-    "description": "Basic demonstration of react-native-offline-api features",
-    "slug": "react-native-offline-api-demo",
+    "name": "apipeline demo",
+    "description": "Basic demonstration of APIpeline features",
+    "slug": "apipeline-demo",
     "privacy": "public",
     "sdkVersion": "25.0.0",
     "platforms": ["ios", "android"],

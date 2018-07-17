@@ -1,5 +1,5 @@
 {
-  "name": "offline-api-web-demo",
+  "name": "apipeline-demo",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -15,7 +15,7 @@
     "next": "^6.1.1",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
-    "react-native-offline-api": "3.0.0",
+    "apipeline": "3.0.0",
     "unfetch": "3.0.0"
   }
 }

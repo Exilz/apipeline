@@ -1,4 +1,4 @@
-import OfflineAPI from 'react-native-offline-api';
+import APIpeline from 'apipeline';
 import clientFetch from 'unfetch';
 import serverFetch from 'isomorphic-unfetch';
 import localforage from 'localforage';
@@ -14,7 +14,7 @@ const API_OPTIONS = {
     disableCache: false,
     middlewares: [() => ({
         headers: {
-            'User-Agent': 'react-native-offline-api (https://github.com/Exilz/react-native-offline-api/blob/master/docs/middlewares.md)',
+            'User-Agent': 'apipeline (https://github.com/Exilz/apipeline)',
             'Accept': 'application/json'
         }
     })]
@@ -34,7 +34,7 @@ const API_SERVICES = {
 };
 
 const api = isServer ?
-    new OfflineAPI(API_OPTIONS, API_SERVICES) :
-    new OfflineAPI(API_OPTIONS, API_SERVICES, localforage);
+    new APIpeline(API_OPTIONS, API_SERVICES) :
+    new APIpeline(API_OPTIONS, API_SERVICES, localforage);
 
 export default api;

@@ -1,11 +1,10 @@
-# SEACU
-*Super Easy API Caching Utility*
+# APIPeline
 
 Easily write offline-first react-native and web applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver... and works in isomorphic (universal) environments.
 
 ## Table of contents
 
-- [SEACU](#seacu)
+- [APIPeline](#apipeline)
     - [Table of contents](#table-of-contents)
     - [Installation](#installation)
     - [How it works](#how-it-works)
@@ -28,8 +27,8 @@ Easily write offline-first react-native and web applications with your own REST 
 ## Installation
 
 ```
-npm install --save seacu # with npm
-yarn add seacu # with yarn
+npm install --save apipeline # with npm
+yarn add apipeline # with yarn
 ```
 
 ## How it works
@@ -63,7 +62,7 @@ We also have 2 different prefixes, so, if you're versioning your APIs by appendi
 
 ### Setting your fetch method
 
-Since you can use *seacu* in any javascript environement (react—native / browsers / node.js), you need to tell the plugin which function it should use to fetch data.
+Since you can use *apipeline* in any javascript environement (react—native / browsers / node.js), you need to tell the plugin which function it should use to fetch data.
 
 You can use anything you want as long as it follows the [fetch specification](https://fetch.spec.whatwg.org/).
 
@@ -106,7 +105,7 @@ These are just examples, **there are much more options for your services, [check
 
 This step is optional, but if you want the wrapper to handle all of the offline goodness for you, you have to tell the plugin which cache driver it should use.
 
-In order to do that, just pass your driver as the 3rd argument of SEACU when instantiating your api, or use `api.setCacheDriver`.
+In order to do that, just pass your driver as the 3rd argument of APIPeline when instantiating your api, or use `api.setCacheDriver`.
 
 * When using `react-native`: you can import `AsyncStorage` or use the baked-in [sqlite driver](docs/custom-drivers.md#sqlite-driver)
 * On the browser : the trusty [`localforage`](https://www.npmjs.com/package/localforage) plugin is usually a good choice
@@ -118,15 +117,15 @@ In `react-native` :
 
 ```javascript
 import { AsyncStorage } from 'react-native';
-import SEACU from 'seacu';
+import APIpeline from 'apipeline';
 
-const api = new SEACU(API_OPTIONS, API_SERVICES, AsyncStorage);
+const api = new APIPeline(API_OPTIONS, API_SERVICES, AsyncStorage);
 ```
 
 In an isomorphic setting (next.js for instance): 
 
 ```javascript
-import SEACU from 'react-native-offline-api';
+import APIpeline from 'apipeline';
 import clientFetch from 'unfetch';
 import serverFetch from 'isomorphic-unfetch';
 import localforage from 'localforage';
@@ -136,8 +135,8 @@ const isServer = typeof window === 'undefined';
 // ... API and services configuration
 
 const api = isServer ?
-    new SEACU(API_OPTIONS, API_SERVICES) :
-    new SEACU(API_OPTIONS, API_SERVICES, localforage);
+    new APIpeline(API_OPTIONS, API_SERVICES) :
+    new APIpeline(API_OPTIONS, API_SERVICES, localforage);
 
 export default api;
 ```
@@ -148,7 +147,7 @@ Now that we have our API options and services configured, let's call our API !
 
 ```javascript
 import React, { Component } from 'react';
-import SEACU from 'seacu';
+import APIpeline from 'apipeline';
 
 // ... API and services configurations and instantiation
 
@@ -183,7 +182,7 @@ In this short example, we're firing a `GET` request on the path `http://staging.
 A couple of notes :
 
 * The `get`, `post`, `fetch`, `fetchHeaders`... methods are promises, which means you can either use `async/await` or `get().then().catch()` if you prefer.
-* You can instantiate `SEACU` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
+* You can instantiate `APIPeline` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
 
 ## Methods
 

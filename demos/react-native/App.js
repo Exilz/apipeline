@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, AsyncStorage } from 'react-native';
-import OfflineFirstAPI from 'react-native-offline-api';
+import APIpeline from 'apipeline';
 
 const API_OPTIONS = {
     fetchMethod: fetch, // use react native's fetch
@@ -24,7 +24,7 @@ const API_SERVICES = {
     }
 };
 
-const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES, AsyncStorage);
+const api = new APIpeline(API_OPTIONS, API_SERVICES, AsyncStorage);
 
 async function setHeadersMiddleware () {
     // This doesn't need a middleware, it's just an example
@@ -91,7 +91,7 @@ export default class Demo extends Component {
     get description () {
       return (
         <ScrollView style={styles.descriptionContainer}>
-          <Text style={styles.desc}>This demo showcases a very basic usage of the plugin. It uses the default cache driver (AsyncStorage).</Text>
+          <Text style={styles.desc}>This demo showcases a very basic usage of the plugin. It uses react native's default cache driver (AsyncStorage).</Text>
           <Text style={styles.desc}>Two endpoints are registered as services (random & search). Both are using the GET method.</Text>
           <Text style={styles.desc}>You can see how fast the cache resolution is once your request has already been fired and when its cached data is fresh...</Text>
           <Text style={styles.desc}>Restart this application with your phone in offline mode to see how easy it is to make your app offline-first !</Text>
@@ -180,7 +180,7 @@ export default class Demo extends Component {
     render () {
         return (
             <View style={styles.container}>
-                <Text style={styles.title}>SEACU</Text>
+                <Text style={styles.title}>APIpeline</Text>
                 { this.description }
                 { this.btns }
                 { this.randomJoke }

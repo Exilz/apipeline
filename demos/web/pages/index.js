@@ -80,7 +80,7 @@ export default class Demo extends Component {
             <div>
                 <hr />
                 <h2>Fetch from the server</h2>
-                <p>You can use <em>seacu</em> both on the browser and the server. The following data has been fetched before the page was actually displayed.</p>
+                <p>You can use <em>APIpeline</em> both on the browser and the server. The following data has been fetched before the page was actually displayed.</p>
                 <p>To see how you can set up the wrapper in an isomorphic environement, check out <em>services/index.js</em> or the documentation.</p>
                 <pre>{ JSON.stringify(this.props.randomJokeFromServer) }</pre>
             </div>
@@ -170,8 +170,7 @@ export default class Demo extends Component {
     render () {
         return (
             <div>
-                <h1>SEACU</h1>
-                <h2><em>Super Easy Api Caching Utility</em></h2>
+                <h1>APIpeline</h1>
                 { this.description }
                 { this.fetchedFromServer }
                 { this.btns }
