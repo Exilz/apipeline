@@ -15,7 +15,6 @@ export interface IAPIOptions {
     ignoreHeadersWhenCaching?: boolean;
     capServices?: boolean;
     capLimit?: number;
-    offlineDriver?: IAPICacheDriver;
 }
 
 export interface IAPIService {
