@@ -1,28 +1,27 @@
-# APIPeline
+<center><img src="https://i.imgur.com/kB49Ps9.png" alt="apipeline" style="margin-top:15px;"/></center>
 
 Easily write offline-first react-native and web applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver... and works in isomorphic (universal) environments.
 
 ## Table of contents
 
-- [APIPeline](#apipeline)
-    - [Table of contents](#table-of-contents)
-    - [Installation](#installation)
-    - [How it works](#how-it-works)
-    - [How to use](#how-to-use)
-        - [Setting up your global API options](#setting-up-your-global-api-options)
-        - [Setting your fetch method](#setting-your-fetch-method)
-        - [Declaring your services definitions](#declaring-your-services-definitions)
-        - [Setting your cache driver](#setting-your-cache-driver)
-        - [Firing your first request](#firing-your-first-request)
-    - [Methods](#methods)
-    - [API options](#api-options)
-    - [Services options](#services-options)
-    - [Fetch options](#fetch-options)
-    - [Path and query parameters](#path-and-query-parameters)
-    - [Limiting the size of your cache](#limiting-the-size-of-your-cache)
-    - [Middlewares](#middlewares)
-    - [Using your own driver for caching](#using-your-own-driver-for-caching)
-    - [Types](#types)
+- [Table of contents](#table-of-contents)
+- [Installation](#installation)
+- [How it works](#how-it-works)
+- [How to use](#how-to-use)
+    - [Setting up your global API options](#setting-up-your-global-api-options)
+    - [Setting your fetch method](#setting-your-fetch-method)
+    - [Declaring your services definitions](#declaring-your-services-definitions)
+    - [Setting your cache driver](#setting-your-cache-driver)
+    - [Firing your first request](#firing-your-first-request)
+- [Methods](#methods)
+- [API options](#api-options)
+- [Services options](#services-options)
+- [Fetch options](#fetch-options)
+- [Path and query parameters](#path-and-query-parameters)
+- [Limiting the size of your cache](#limiting-the-size-of-your-cache)
+- [Middlewares](#middlewares)
+- [Using your own driver for caching](#using-your-own-driver-for-caching)
+- [Types](#types)
 
 ## Installation
 
