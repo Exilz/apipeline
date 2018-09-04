@@ -1,4 +1,4 @@
-import { IAPIDriver } from '../interfaces';
+import { IAPICacheDriver } from '../interfaces';
 
 type PromiseResolve<T> = (value?: T | PromiseLike<T>) => void;
 type PromiseReject = (error?: any) => void;
@@ -33,14 +33,14 @@ interface IQueryResults {
     rowsAffected: number;
 }
 
-export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): Promise<IAPIDriver> => {
+export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): Promise<IAPICacheDriver> => {
     SQLite.DEBUG(options.debug || false);
     SQLite.enablePromise(true);
 
     try {
         const db: ISQLiteDatabase = await SQLite.openDatabase(
             {
-                name: 'offlineapi.db',
+                name: 'apipeline.db',
                 location: 'default',
                 ...(options.openDatabaseOptions || {})
             }
@@ -53,15 +53,14 @@ export default async (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions ): P
         return {
             getItem: getItem(db),
             setItem: setItem(db),
-            removeItem: removeItem(db),
-            multiRemove: multiRemove(db)
+            removeItem: removeItem(db)
         };
     } catch (err) {
-        throw new Error(`react-native-offline-api : Cannot open SQLite database : ${err}. Check your SQLite configuration.`);
+        throw new Error(`APIPeline : Cannot open SQLite database : ${err}. Check your SQLite configuration.`);
     }
 };
 
-function getItem (db: ISQLiteDatabase): IAPIDriver['getItem'] {
+function getItem (db: ISQLiteDatabase): IAPICacheDriver['getItem'] {
     return (key: string) => {
         return new Promise((resolve: PromiseResolve<any>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
@@ -79,7 +78,7 @@ function getItem (db: ISQLiteDatabase): IAPIDriver['getItem'] {
     };
 }
 
-function setItem (db: ISQLiteDatabase): IAPIDriver['setItem'] {
+function setItem (db: ISQLiteDatabase): IAPICacheDriver['setItem'] {
     return (key: string, value: string) => {
         return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
@@ -95,34 +94,11 @@ function setItem (db: ISQLiteDatabase): IAPIDriver['setItem'] {
     };
 }
 
-function removeItem (db: ISQLiteDatabase): IAPIDriver['removeItem'] {
+function removeItem (db: ISQLiteDatabase): IAPICacheDriver['removeItem'] {
     return (key: string) => {
         return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
             db.transaction((tx: ITransaction) => {
                 tx.executeSql('DELETE FROM cache WHERE id=?', [key])
-                .then(() => {
-                    return resolve();
-                })
-                .catch((err: Error) => {
-                    return reject(err);
-                });
-            });
-        });
-    };
-}
-
-function multiRemove (db: ISQLiteDatabase): IAPIDriver['multiRemove'] {
-    return (keys: string[]) => {
-        return new Promise((resolve: PromiseResolve<void>, reject: PromiseReject) => {
-            // This implmementation is not the most efficient, must delete using
-            // WHERE id IN (...,...) doesn't seem to be working at the moment.
-            db.transaction((tx: ITransaction) => {
-                let promises = [];
-                keys.forEach((key: string) => {
-                    promises.push(tx.executeSql('DELETE FROM cache WHERE id=?', [key]));
-                });
-
-                Promise.all(promises)
                 .then(() => {
                     return resolve();
                 })

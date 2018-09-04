@@ -43,7 +43,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_native_1 = require("react-native");
 var sqlite_1 = require("./drivers/sqlite");
 var _mapValues = require("lodash.mapvalues");
 var _merge = require("lodash.merge");
@@ -51,10 +50,11 @@ var sha = require("jssha");
 var DEFAULT_API_OPTIONS = {
     debugAPI: false,
     prefixes: { default: '/' },
+    encodeParameters: false,
     printNetworkRequests: false,
     disableCache: false,
     cacheExpiration: 5 * 60 * 1000,
-    cachePrefix: 'offlineApiCache',
+    cachePrefix: 'APIPelineCache',
     ignoreHeadersWhenCaching: false,
     capServices: false,
     capLimit: 50
@@ -64,33 +64,22 @@ var DEFAULT_SERVICE_OPTIONS = {
     domain: 'default',
     prefix: 'default'
 };
-var DEFAULT_CACHE_DRIVER = react_native_1.AsyncStorage;
 var HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 exports.drivers = { sqliteDriver: sqlite_1.default };
-var OfflineFirstAPI = (function () {
-    function OfflineFirstAPI(options, services, driver) {
+var APIpeline = (function () {
+    function APIpeline(options, services, driver) {
         this._APIServices = {};
-        this._APIDriver = DEFAULT_CACHE_DRIVER;
+        this._warnedAboutMissingDriver = false;
         options && this.setOptions(options);
         services && this.setServices(services);
         driver && this.setCacheDriver(driver);
         this._createHTTPMethods();
+        if (!this._APIOptions.fetchMethod) {
+            throw new Error('Your fetch method is undefined. make sure to set `fetchMethod` in your API options. ' +
+                'Check out the documentation to find setting examples for the browser / node / react-native');
+        }
     }
-    OfflineFirstAPI.prototype._createHTTPMethods = function () {
-        var _this = this;
-        HTTP_METHODS.forEach(function (method) {
-            _this[method.toLocaleLowerCase()] = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i] = arguments[_i];
-                }
-                return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
-                    return [2 /*return*/, this.fetch(args[0], args[1], method)];
-                }); });
-            };
-        });
-    };
-    OfflineFirstAPI.prototype.fetch = function (service, options, forcedHTTPMethod) {
+    APIpeline.prototype.fetch = function (service, options, forcedHTTPMethod) {
         return __awaiter(this, void 0, void 0, function () {
             var serviceDefinition, _a, fullPath, withoutQueryParams, middlewares, fetchOptions, fetchHeaders, shouldUseCache, expiration, requestId, expirationDelay, cachedData, parsedResponseData, res, _b, responseMiddleware, err_1;
             return __generator(this, function (_c) {
@@ -99,6 +88,11 @@ var OfflineFirstAPI = (function () {
                         serviceDefinition = this._APIServices[service];
                         if (!serviceDefinition) {
                             throw new Error("Cannot fetch data from unregistered service '" + service + "'");
+                        }
+                        if (!this._APICacheDriver && !this._warnedAboutMissingDriver) {
+                            this._log('No caching driver set. Remember set it as the 3rd argument of APIPeline ' +
+                                'or use the `setCacheDriver` method before firing requests. Nothing will be cached for now.');
+                            this._warnedAboutMissingDriver = true;
                         }
                         _a = this._constructPath(serviceDefinition, options), fullPath = _a.fullPath, withoutQueryParams = _a.withoutQueryParams;
                         _c.label = 1;
@@ -111,13 +105,16 @@ var OfflineFirstAPI = (function () {
                         fetchHeaders = options && options.fetchHeaders;
                         shouldUseCache = this._shouldUseCache(serviceDefinition, options);
                         expiration = void 0;
-                        requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
-                        expirationDelay = (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
-                        expiration = Date.now() + expirationDelay;
-                        return [4 /*yield*/, this._getCachedData(service, requestId, fullPath)];
+                        requestId = void 0;
+                        if (shouldUseCache) {
+                            requestId = this._buildRequestId(serviceDefinition, fullPath, fetchHeaders, fetchOptions, options);
+                            expirationDelay = (options && options.expiration) || serviceDefinition.expiration || this._APIOptions.cacheExpiration;
+                            expiration = Date.now() + expirationDelay;
+                        }
+                        return [4 /*yield*/, this._getCachedData(service, requestId, fullPath, shouldUseCache)];
                     case 3:
                         cachedData = _c.sent();
-                        if (cachedData.success && cachedData.fresh && shouldUseCache) {
+                        if (cachedData.success && cachedData.fresh) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
                         }
@@ -176,7 +173,7 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
-    OfflineFirstAPI.prototype.fetchHeaders = function (service, options) {
+    APIpeline.prototype.fetchHeaders = function (service, options) {
         return __awaiter(this, void 0, void 0, function () {
             var err_2;
             return __generator(this, function (_a) {
@@ -193,8 +190,9 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
-    OfflineFirstAPI.prototype.clearCache = function (service) {
+    APIpeline.prototype.clearCache = function (service) {
         return __awaiter(this, void 0, void 0, function () {
+            var _this = this;
             var keysToRemove, _a, _b, _i, serviceName, keysForService, err_3;
             return __generator(this, function (_c) {
                 switch (_c.label) {
@@ -233,7 +231,7 @@ var OfflineFirstAPI = (function () {
                         _c.label = 8;
                     case 8:
                         this._log('keys to be removed', keysToRemove);
-                        return [4 /*yield*/, this._APIDriver.multiRemove(keysToRemove)];
+                        return [4 /*yield*/, Promise.all(keysToRemove.map(function (key) { return _this._APICacheDriver.removeItem(key); }))];
                     case 9:
                         _c.sent();
                         return [2 /*return*/];
@@ -245,21 +243,35 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
-    OfflineFirstAPI.prototype.setOptions = function (options) {
+    APIpeline.prototype.setOptions = function (options) {
         this._APIOptions = this._mergeAPIOptionsWithDefaultValues(options);
         this._log('options set to ', this._APIOptions);
         if (!this._APIOptions.domains.default) {
             throw new Error("You didn't set your default domain URL in your options. \n " +
-                "new OfflineFirstAPI({ domains: { default: 'http://myApi.net' } }, ...)");
+                "new APIpeline({ domains: { default: 'http://myApi.net' } }, ...)");
         }
     };
-    OfflineFirstAPI.prototype.setServices = function (services) {
+    APIpeline.prototype.setServices = function (services) {
         this._APIServices = this._mergeServicesWithDefaultValues(services);
         this._log('services set to', this._APIServices);
     };
-    OfflineFirstAPI.prototype.setCacheDriver = function (driver) {
-        this._APIDriver = driver;
+    APIpeline.prototype.setCacheDriver = function (driver) {
+        this._APICacheDriver = driver;
         this._log('custom driver set');
+    };
+    APIpeline.prototype._createHTTPMethods = function () {
+        var _this = this;
+        HTTP_METHODS.forEach(function (method) {
+            _this[method.toLocaleLowerCase()] = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i] = arguments[_i];
+                }
+                return __awaiter(_this, void 0, void 0, function () { return __generator(this, function (_a) {
+                    return [2 /*return*/, this.fetch(args[0], args[1], method)];
+                }); });
+            };
+        });
     };
     /**
      * Simple helper that won't ever throw an error into the stack if the network request
@@ -268,9 +280,9 @@ var OfflineFirstAPI = (function () {
      * @param {string} url
      * @param {*} [options]
      * @returns {Promise<IFetchResponse>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._fetch = function (url, options) {
+    APIpeline.prototype._fetch = function (url, options) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, err_4;
             return __generator(this, function (_b) {
@@ -278,10 +290,11 @@ var OfflineFirstAPI = (function () {
                     case 0:
                         _b.trys.push([0, 2, , 3]);
                         _a = { success: true };
-                        return [4 /*yield*/, fetch(url, options)];
+                        return [4 /*yield*/, this._APIOptions.fetchMethod(url, options)];
                     case 1: return [2 /*return*/, (_a.data = _b.sent(), _a)];
                     case 2:
                         err_4 = _b.sent();
+                        console.warn(err_4);
                         return [2 /*return*/, { success: false }];
                     case 3: return [2 /*return*/];
                 }
@@ -297,9 +310,9 @@ var OfflineFirstAPI = (function () {
      * @param {*} response
      * @param {number} expiration
      * @returns {(Promise<void|boolean>)}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._cache = function (serviceDefinition, service, requestId, response, expiration) {
+    APIpeline.prototype._cache = function (serviceDefinition, service, requestId, response, expiration) {
         return __awaiter(this, void 0, void 0, function () {
             var shouldCap, capLimit, serviceDictionaryKey, dictionary, cachedItemsCount, key, err_5;
             return __generator(this, function (_a) {
@@ -315,14 +328,14 @@ var OfflineFirstAPI = (function () {
                         return [4 /*yield*/, this._addKeyToServiceDictionary(service, requestId, expiration)];
                     case 2:
                         _a.sent();
-                        return [4 /*yield*/, this._APIDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response))];
+                        return [4 /*yield*/, this._APICacheDriver.setItem(this._getCacheObjectKey(requestId), JSON.stringify(response))];
                     case 3:
                         _a.sent();
                         this._log("Updated cache for request " + requestId);
                         if (!shouldCap) return [3 /*break*/, 6];
                         capLimit = serviceDefinition.capLimit || this._APIOptions.capLimit;
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 4:
                         dictionary = _a.sent();
                         if (!dictionary) return [3 /*break*/, 6];
@@ -333,10 +346,10 @@ var OfflineFirstAPI = (function () {
                             ', removing the oldest cached item...');
                         key = this._getOldestCachedItem(dictionary).key;
                         delete dictionary[key];
-                        return [4 /*yield*/, this._APIDriver.removeItem(this._getCacheObjectKey(key))];
+                        return [4 /*yield*/, this._APICacheDriver.removeItem(this._getCacheObjectKey(key))];
                     case 5:
                         _a.sent();
-                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         _a.label = 6;
                     case 6: return [2 /*return*/, true];
                     case 7:
@@ -356,14 +369,18 @@ var OfflineFirstAPI = (function () {
      * @param {string} requestId
      * @param {string} fullPath
      * @returns {Promise<ICachedData>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._getCachedData = function (service, requestId, fullPath) {
+    APIpeline.prototype._getCachedData = function (service, requestId, fullPath, shouldUseCache) {
         return __awaiter(this, void 0, void 0, function () {
             var serviceDictionary, expiration, rawCachedData, parsedCachedData, err_6;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this._APIDriver.getItem(this._getServiceDictionaryKey(service))];
+                    case 0:
+                        if (!this._APICacheDriver || !shouldUseCache) {
+                            return [2 /*return*/, { success: false }];
+                        }
+                        return [4 /*yield*/, this._APICacheDriver.getItem(this._getServiceDictionaryKey(service))];
                     case 1:
                         serviceDictionary = _a.sent();
                         serviceDictionary = JSON.parse(serviceDictionary) || {};
@@ -373,7 +390,7 @@ var OfflineFirstAPI = (function () {
                         _a.label = 2;
                     case 2:
                         _a.trys.push([2, 4, , 5]);
-                        return [4 /*yield*/, this._APIDriver.getItem(this._getCacheObjectKey(requestId))];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(this._getCacheObjectKey(requestId))];
                     case 3:
                         rawCachedData = _a.sent();
                         parsedCachedData = JSON.parse(rawCachedData);
@@ -404,10 +421,13 @@ var OfflineFirstAPI = (function () {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} options
      * @returns {boolean}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._shouldUseCache = function (serviceDefinition, options) {
-        if (options && typeof options.disableCache !== 'undefined') {
+    APIpeline.prototype._shouldUseCache = function (serviceDefinition, options) {
+        if (!this._APICacheDriver) {
+            return false;
+        }
+        else if (options && typeof options.disableCache !== 'undefined') {
             return !options.disableCache;
         }
         else if (serviceDefinition && typeof serviceDefinition.disableCache !== 'undefined') {
@@ -424,9 +444,9 @@ var OfflineFirstAPI = (function () {
      * @param {string} requestId
      * @param {number} expiration
      * @returns {Promise<boolean>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._addKeyToServiceDictionary = function (service, requestId, expiration) {
+    APIpeline.prototype._addKeyToServiceDictionary = function (service, requestId, expiration) {
         return __awaiter(this, void 0, void 0, function () {
             var serviceDictionaryKey, dictionary, err_7;
             return __generator(this, function (_a) {
@@ -434,7 +454,7 @@ var OfflineFirstAPI = (function () {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 1:
                         dictionary = _a.sent();
                         if (!dictionary) {
@@ -444,7 +464,7 @@ var OfflineFirstAPI = (function () {
                             dictionary = JSON.parse(dictionary);
                         }
                         dictionary[requestId] = expiration;
-                        this._APIDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
+                        this._APICacheDriver.setItem(serviceDictionaryKey, JSON.stringify(dictionary));
                         return [2 /*return*/, true];
                     case 2:
                         err_7 = _a.sent();
@@ -459,9 +479,9 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {ICacheDictionary} dictionary
      * @returns {*}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._getOldestCachedItem = function (dictionary) {
+    APIpeline.prototype._getOldestCachedItem = function (dictionary) {
         var oldest;
         for (var key in dictionary) {
             var keyExpiration = dictionary[key];
@@ -482,9 +502,9 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {string} service
      * @returns {Promise<string[]>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._getAllKeysForService = function (service) {
+    APIpeline.prototype._getAllKeysForService = function (service) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             var keys, serviceDictionaryKey, dictionary, dictionaryKeys, err_8;
@@ -495,7 +515,7 @@ var OfflineFirstAPI = (function () {
                         keys = [];
                         serviceDictionaryKey = this._getServiceDictionaryKey(service);
                         keys.push(serviceDictionaryKey);
-                        return [4 /*yield*/, this._APIDriver.getItem(serviceDictionaryKey)];
+                        return [4 /*yield*/, this._APICacheDriver.getItem(serviceDictionaryKey)];
                     case 1:
                         dictionary = _a.sent();
                         if (dictionary) {
@@ -517,9 +537,9 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {string} service
      * @returns {string}
-     * @memberof OfflineFirstAP
+     * @memberof APIPeline
      */
-    OfflineFirstAPI.prototype._getServiceDictionaryKey = function (service) {
+    APIpeline.prototype._getServiceDictionaryKey = function (service) {
         return this._APIOptions.cachePrefix + ":dictionary:" + service;
     };
     /**
@@ -527,9 +547,9 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {string} requestId
      * @returns {string}
-     * @memberof OfflineFirstAP
+     * @memberof APIPeline
      */
-    OfflineFirstAPI.prototype._getCacheObjectKey = function (requestId) {
+    APIpeline.prototype._getCacheObjectKey = function (requestId) {
         return this._APIOptions.cachePrefix + ":" + requestId;
     };
     /**
@@ -539,9 +559,9 @@ var OfflineFirstAPI = (function () {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {Promise<any>}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._applyMiddlewares = function (serviceDefinition, paths, options) {
+    APIpeline.prototype._applyMiddlewares = function (serviceDefinition, paths, options) {
         return __awaiter(this, void 0, void 0, function () {
             var middlewares, resolvedMiddlewares, err_9;
             return __generator(this, function (_a) {
@@ -567,7 +587,7 @@ var OfflineFirstAPI = (function () {
             });
         });
     };
-    OfflineFirstAPI.prototype._buildRequestId = function (serviceDefinition, fullPath, fetchHeaders, mergedOptions, // fully merged options
+    APIpeline.prototype._buildRequestId = function (serviceDefinition, fullPath, fetchHeaders, mergedOptions, // fully merged options
         fetchOptions // fetch options
     ) {
         var ignoreHeadersWhenCaching = this._APIOptions.ignoreHeadersWhenCaching ||
@@ -589,9 +609,9 @@ var OfflineFirstAPI = (function () {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {string}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._constructPath = function (serviceDefinition, options) {
+    APIpeline.prototype._constructPath = function (serviceDefinition, options) {
         var domainKey = (options && options.domain) || serviceDefinition.domain;
         var domainURL = this._APIOptions.domains[domainKey];
         var prefixKey = (options && options.prefix) || serviceDefinition.prefix;
@@ -612,9 +632,10 @@ var OfflineFirstAPI = (function () {
      * @param {IAPIService} serviceDefinition
      * @param {IFetchOptions} [options]
      * @returns {string}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._parsePath = function (serviceDefinition, options) {
+    APIpeline.prototype._parsePath = function (serviceDefinition, options) {
+        var encodeParameters = this._APIOptions.encodeParameters;
         var path = serviceDefinition.path;
         var parsedQueryParameters = '';
         if (options && options.pathParameters) {
@@ -622,6 +643,9 @@ var OfflineFirstAPI = (function () {
             for (var i in pathParameters) {
                 if (typeof pathParameters[i] === 'undefined') {
                     continue;
+                }
+                if (encodeParameters) {
+                    pathParameters[i] = encodeURIComponent(pathParameters[i]);
                 }
                 path = path.replace(":" + i, pathParameters[i]);
             }
@@ -632,6 +656,9 @@ var OfflineFirstAPI = (function () {
             for (var i in queryParameters) {
                 if (typeof queryParameters[i] === 'undefined') {
                     continue;
+                }
+                if (encodeParameters) {
+                    queryParameters[i] = encodeURIComponent(queryParameters[i]);
                 }
                 parsedQueryParameters += insertedQueryParameters === 0 ?
                     "?" + i + "=" + queryParameters[i] :
@@ -649,9 +676,9 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {IAPIOptions} options
      * @returns {IAPIOptions}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._mergeAPIOptionsWithDefaultValues = function (options) {
+    APIpeline.prototype._mergeAPIOptionsWithDefaultValues = function (options) {
         return __assign({}, DEFAULT_API_OPTIONS, options, { prefixes: __assign({}, DEFAULT_API_OPTIONS.prefixes, (options.prefixes || {})) });
     };
     /**
@@ -660,18 +687,18 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {IAPIServices} services
      * @returns {IAPIServices}
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._mergeServicesWithDefaultValues = function (services) {
+    APIpeline.prototype._mergeServicesWithDefaultValues = function (services) {
         var _this = this;
         return _mapValues(services, function (service, serviceName) {
             if (service.domain && typeof _this._APIOptions.domains[service.domain] === 'undefined') {
                 throw new Error("Domain key " + service.domain + " specified for service " + serviceName + " hasn't been declared. \n" +
-                    'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.');
+                    'Please provide it in your APIpeline parameters or leave it blank to use the default one.');
             }
             if (service.prefix && typeof _this._APIOptions.prefixes[service.prefix] === 'undefined') {
                 throw new Error("Prefix key " + service.domain + " specified for service " + serviceName + " hasn't been declared. \n" +
-                    'Please provide it in your OfflineFirstAPI parameters or leave it blank to use the default one.');
+                    'Please provide it in your APIpeline parameters or leave it blank to use the default one.');
             }
             return __assign({}, DEFAULT_SERVICE_OPTIONS, service);
         });
@@ -682,9 +709,9 @@ var OfflineFirstAPI = (function () {
      * @param {IAPIService} serviceDefinition
      * @param {boolean} fetchHeaders
      * @param {IFetchOptions} [options]
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._logNetwork = function (serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod) {
+    APIpeline.prototype._logNetwork = function (serviceDefinition, fullPath, fetchHeaders, options, forcedHTTPMethod) {
         if (this._APIOptions.printNetworkRequests) {
             console.log("%c Network request " + (fetchHeaders ? '(headers only)' : '') + " for " + fullPath + " " +
                 ("(" + (forcedHTTPMethod || (options && options.method) || serviceDefinition.method) + ")"), 'font-weight: bold; color: blue');
@@ -695,18 +722,18 @@ var OfflineFirstAPI = (function () {
      * @private
      * @param {string} msg
      * @param {*} [value]
-     * @memberof OfflineFirstAPI
+     * @memberof APIpeline
      */
-    OfflineFirstAPI.prototype._log = function (msg, value) {
+    APIpeline.prototype._log = function (msg, value) {
         if (this._APIOptions.debugAPI) {
             if (value) {
-                console.log("OfflineFirstAPI | " + msg, value);
+                console.log("APIpeline | " + msg, value);
             }
             else {
-                console.log("OfflineFirstAPI | " + msg);
+                console.log("APIpeline | " + msg);
             }
         }
     };
-    return OfflineFirstAPI;
+    return APIpeline;
 }());
-exports.default = OfflineFirstAPI;
+exports.default = APIpeline;

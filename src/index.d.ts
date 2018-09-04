@@ -5,25 +5,25 @@ import {
     IFetchOptions,
     IFetchResponse,
     ICachedData,
-    IAPIDriver,
+    IAPICacheDriver,
     APIMiddleware
 } from './interfaces';
 
 import { ISQLiteBinding, ISQLiteDriverOptions } from './drivers/sqlite';
 
-declare module "react-native-offline-api" {
+declare module "apipeline" {
     export const drivers: {
-        sqliteDriver: (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions) => Promise<IAPIDriver>
+        sqliteDriver: (SQLite: ISQLiteBinding, options: ISQLiteDriverOptions) => Promise<IAPICacheDriver>
     };
 
-    export default class OfflineFirstAPI {
-        constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPIDriver);
+    export default class APIPeline {
+        constructor (options: IAPIOptions, services: IAPIServices, driver?: IAPICacheDriver);
         public fetch (service: string, options?: IFetchOptions): Promise<any>;
         public fetchHeaders (service: string, options?: IFetchOptions): Promise<any>;
         public clearCache (service?: string): Promise<void>;
         public setOptions (options: IAPIOptions): void;
         public setServices (services: IAPIServices): void;
-        public setCacheDriver (driver: IAPIDriver): void;
+        public setCacheDriver (driver: IAPICacheDriver): void;
         // HTTP methods shorthands
         public get (service: string, options?: IFetchOptions): Promise<any>;
         public head (service: string, options?: IFetchOptions): Promise<any>;

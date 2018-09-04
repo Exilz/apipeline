@@ -1,8 +1,10 @@
 export type IHTTPMethods = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE';
 
 export interface IAPIOptions {
+    fetchMethod: (url: string, options?: any) => Promise<any>;
     domains: { default: string, [key: string]: string };
     prefixes: { default: string, [key: string]: string };
+    encodeParameters?: boolean;
     middlewares?: APIMiddleware[];
     responseMiddleware?: ResponseMiddleware;
     debugAPI?: boolean;
@@ -13,8 +15,7 @@ export interface IAPIOptions {
     ignoreHeadersWhenCaching?: boolean;
     capServices?: boolean;
     capLimit?: number;
-    offlineDriver?: IAPIDriver;
-};
+}
 
 export interface IAPIService {
     path?: string;
@@ -29,11 +30,11 @@ export interface IAPIService {
     capService?: boolean;
     capLimit?: number;
     rawData?: boolean;
-};
+}
 
 export interface IAPIServices {
     [key: string]: IAPIService;
-};
+}
 
 export interface IFetchOptions extends IAPIService {
     pathParameters?: { [key: string]: any };
@@ -41,9 +42,9 @@ export interface IFetchOptions extends IAPIService {
     headers?: { [key: string]: string };
     fetchHeaders?: boolean;
     middlewares?: APIMiddleware[];
-    responseMiddleware: ResponseMiddleware;
+    responseMiddleware?: ResponseMiddleware;
     fetchOptions?: any;
-};
+}
 
 export interface IFetchResponse {
     success: boolean;
@@ -60,11 +61,10 @@ export interface ICacheDictionary {
     [key: string]: number;
 }
 
-export interface IAPIDriver {
+export interface IAPICacheDriver {
     getItem(key: string): Promise<any>;
-    setItem(key: string, value: string): Promise<void>;
-    removeItem(key: string): Promise<void>;
-    multiRemove(keys: string[]): Promise<void>;
+    setItem(key: string, value: string, callback?: (err: any, value: string) => any): Promise<any>;
+    removeItem(key: string): Promise<any>;
 }
 
 export interface IMiddlewarePaths {

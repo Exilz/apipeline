@@ -4,22 +4,21 @@ This wrapper has been written with the goal of **being storage-agnostic**. This 
 
 Your custom driver must implement these 3 methods that are promises.
 
-* `getItem(key: string): Promise<any>;`
-* `setItem(key: string, value: string): Promise<void>;`
-* `removeItem(key: string): Promise<void>;`
-* `multiRemove(keys: string[]): Promise<void>;`
+* getItem(key: string): Promise<any>;
+* setItem(key: string, value: string, callback?: (err: any, value: string) => any): Promise<any>;
+* removeItem(key: string): Promise<any>;
 
-## SQLite Driver
+## SQLite Driver (react-native only)
 
 As of `2.2.0`, an SQLite driver is baked-in with the module. Install SQLite in your project by [following these instructions](https://github.com/andpor/react-native-sqlite-storage) and set it as your custom driver like this :
 
 ```javascript
-import OfflineFirstAPI, { drivers } from 'react-native-offline-api';
+import APIpeline, { drivers } from 'apipeline';
 import SQLite from 'react-native-sqlite-storage';
 
 // ...
 
-const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES);
+const api = new APIpeline(API_OPTIONS, API_SERVICES);
 
 drivers.sqliteDriver(SQLite, { debug: false }).then((driver) => {
     api.setCacheDriver(driver);

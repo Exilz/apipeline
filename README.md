@@ -1,34 +1,33 @@
-# react-native-offline-api
+<center><img src="https://i.imgur.com/kB49Ps9.png" alt="apipeline" style="margin-top:15px;"/></center>
 
-Simple, customizable, offline-first API wrapper for react-native.
-
-Easily write offline-first react-native applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver...
+Easily write offline-first react-native and web applications with your own REST API. This module supports every major features for network requests : middlewares, fine-grained control over caching logic, custom caching driver... and works in isomorphic (universal) environments.
 
 ## Table of contents
 
-- [react-native-offline-api](#react-native-offline-api)
-    - [Table of contents](#table-of-contents)
-    - [Installation](#installation)
-    - [How it works](#how-it-works)
-    - [How to use](#how-to-use)
-        - [Setting up your global API options](#setting-up-your-global-api-options)
-        - [Declaring your services definitions](#declaring-your-services-definitions)
-        - [Firing your first request](#firing-your-first-request)
-    - [Methods](#methods)
-    - [API options](#api-options)
-    - [Services options](#services-options)
-    - [Fetch options](#fetch-options)
-    - [Path and query parameters](#path-and-query-parameters)
-    - [Limiting the size of your cache](#limiting-the-size-of-your-cache)
-    - [Middlewares](#middlewares)
-    - [Using your own driver for caching](#using-your-own-driver-for-caching)
-    - [Types](#types)
+- [Table of contents](#table-of-contents)
+- [Installation](#installation)
+- [How it works](#how-it-works)
+- [How to use](#how-to-use)
+    - [Setting up your global API options](#setting-up-your-global-api-options)
+    - [Setting your fetch method](#setting-your-fetch-method)
+    - [Declaring your services definitions](#declaring-your-services-definitions)
+    - [Setting your cache driver](#setting-your-cache-driver)
+    - [Firing your first request](#firing-your-first-request)
+- [Methods](#methods)
+- [API options](#api-options)
+- [Services options](#services-options)
+- [Fetch options](#fetch-options)
+- [Path and query parameters](#path-and-query-parameters)
+- [Limiting the size of your cache](#limiting-the-size-of-your-cache)
+- [Middlewares](#middlewares)
+- [Using your own driver for caching](#using-your-own-driver-for-caching)
+- [Types](#types)
 
 ## Installation
 
 ```
-npm install --save react-native-offline-api # with npm
-yarn add react-native-offline-api # with yarn
+npm install --save apipeline # with npm
+yarn add apipeline # with yarn
 ```
 
 ## How it works
@@ -46,6 +45,7 @@ Here's an example :
 
 ```javascript
 const API_OPTIONS = {
+    fetchMethod: yourFetchMethod, // documented below
     domains: { default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },
     prefixes: { default: '/api/v1', apiV2: '/api/v2' },
     debugAPI: true,
@@ -58,6 +58,16 @@ Here, we have set up the wrapper so it can use 2 different domains, a production
 We also have 2 different prefixes, so, if you're versioning your APIs by appending `/v2` in your URLs for example, you'll be able to easily request each versions. Please note that this is totally optional.
 
 **[Check out all the API options here](#api-options)**
+
+### Setting your fetch method
+
+Since you can use *apipeline* in any javascript environement (react—native / browsers / node.js), you need to tell the plugin which function it should use to fetch data.
+
+You can use anything you want as long as it follows the [fetch specification](https://fetch.spec.whatwg.org/).
+
+* When using `react-native` : it's easy, just use `fetch` which is defined globally
+* On the browser : you can use `fetch` on the most recent browser or use a polyfill like [unfetch](https://www.npmjs.com/package/unfetch) or [whatwg-fetch](https://www.npmjs.com/package/whatwg-fetch)
+* In node.js : you *need* a `fetch` polyfill like [node-fetch](https://www.npmjs.com/package/node-fetch)
 
 ### Declaring your services definitions
 
@@ -90,17 +100,55 @@ Here, we declared 3 services :
 
 These are just examples, **there are much more options for your services, [check them out here](#services-options).**
 
+### Setting your cache driver
+
+This step is optional, but if you want the wrapper to handle all of the offline goodness for you, you have to tell the plugin which cache driver it should use.
+
+In order to do that, just pass your driver as the 3rd argument of APIPeline when instantiating your api, or use `api.setCacheDriver`.
+
+* When using `react-native`: you can import `AsyncStorage` or use the baked-in [sqlite driver](docs/custom-drivers.md#sqlite-driver)
+* On the browser : the trusty [`localforage`](https://www.npmjs.com/package/localforage) plugin is usually a good choice
+* In node.js : no cache driver has been written for now but we would gladly accept pull requests regarding this feature
+
+Examples :
+
+In `react-native` : 
+
+```javascript
+import { AsyncStorage } from 'react-native';
+import APIpeline from 'apipeline';
+
+const api = new APIPeline(API_OPTIONS, API_SERVICES, AsyncStorage);
+```
+
+In an isomorphic setting (next.js for instance): 
+
+```javascript
+import APIpeline from 'apipeline';
+import clientFetch from 'unfetch';
+import serverFetch from 'isomorphic-unfetch';
+import localforage from 'localforage';
+
+const isServer = typeof window === 'undefined';
+
+// ... API and services configuration
+
+const api = isServer ?
+    new APIpeline(API_OPTIONS, API_SERVICES) :
+    new APIpeline(API_OPTIONS, API_SERVICES, localforage);
+
+export default api;
+```
+
 ### Firing your first request
 
 Now that we have our API options and services configured, let's call our API !
 
 ```javascript
 import React, { Component } from 'react';
-import OfflineFirstAPI from 'react-native-offline-api';
+import APIpeline from 'apipeline';
 
-// ... API and services configurations
-
-const api = new OfflineFirstAPI(API_OPTIONS, API_SERVICES);
+// ... API and services configurations and instantiation
 
 export default class demo extends Component {
 
@@ -110,7 +158,7 @@ export default class demo extends Component {
 
     async fetchSampleData () {
         try {
-            const request = await api.fetch(
+            const request = await api.get(
                 'documents',
                 {
                     pathParameters: { documentId: 'xSfdk21' }
@@ -132,8 +180,8 @@ In this short example, we're firing a `GET` request on the path `http://staging.
 
 A couple of notes :
 
-* The `fetch` and `fetchHeaders` methods are promises, which means you can either use `async/await` or `fetch().then().catch()` if you prefer.
-* You can instantiate `OfflineFirstAPI` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
+* The `get`, `post`, `fetch`, `fetchHeaders`... methods are promises, which means you can either use `async/await` or `get().then().catch()` if you prefer.
+* You can instantiate `APIPeline` without `API_OPTIONS` and/or `API_SERVICES` and set them later with `api.setOptions` and `api.setServices` methods if the need arises.
 
 ## Methods
 
@@ -149,23 +197,24 @@ Name | Description | Parameters | Return value
 
 ## API options
 
-These are the global options for the wrapper. Some of them can be overriden at the service definition level, or with the `option` parameter of the `fetch` method. **Only `domains` and `prefixes` are required.**
+These are the global options for the wrapper. Some of them can be overriden at the service definition level, or with the `option` parameter of the `fetch` method. **Only `fetchMethod`, `domains` and `prefixes` are required.**
 
 Key | Type | Description | Example
 ------ | ------ | ------ | ------
+`fetchMethod` | `function` [read more here](#setting-your-fetch-method) | **Required**, a [spec compliant](https://fetch.spec.whatwg.org/) function | an imported fetch polyfill
 `domains` | `{ default: string, [key: string]: string }` | **Required**, full URL to your domains | `domains: {default: 'http://myapi.tld', staging: 'http://staging.myapi.tld' },`
 `prefixes` | `{ default: string, [key: string]: string }` | **Required**, prefixes your API uses, `default` is required, leave it blank if you don't have any | `{ default: '/api/v1', apiV2: '/api/v2' }`
+`encodeParameters` | `boolean` | Optional, automatically encodes UTF8 chars in `queryParameters` & `pathParameters` | `true` (defaults to `false`)
 `middlewares` | `APIMiddleware[]` | Optionnal middlewares, see [middlewares](#middlewares) | `[authFunc, trackFunc]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses, see [middlewares](#middlewares) | `alterFunction`
-`debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing
-`printNetworkRequests` | `boolean` | Optional, prints all your network requests
-`disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter)
-`cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter)
-`cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache`
-`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
-`capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`capLimit` | `number` | Optional quantity of cached items for each service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`offlineDriver` | `IAPIDriver` | Optional, see [use your own driver for caching](#use-your-own-driver-for-caching)
+`debugAPI` | `boolean` | Optional, enables debugging mode, printing what's the wrapper doing | `true` (defaults to `false`)
+`printNetworkRequests` | `boolean` | Optional, prints all your network requests | `true` (defaults to `false`)
+`disableCache` | `boolean` | Optional, completely disables caching (overriden by service definitions & `fetch`'s `option` parameter) | `true` (defaults to `false`)
+`cacheExpiration` | `number` | Optional default expiration of cached data in ms (overriden by service definitions & `fetch`'s `option` parameter) | `5 * 60 * 1000`
+`cachePrefix` | `string` | Optional, prefix of the keys stored on your cache, defaults to `offlineApiCache` | `'myOwnCache'` (defaults to `APIPelineCache`)
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
+`capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `true` (defaults to `false`)
+`capLimit` | `number` | Optional quantity of cached items for each service, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `100` (defaults to `50`)
 
 ## Services options
 
@@ -174,17 +223,17 @@ These are the options for each of your services, **the only required key is `pat
 Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `path` | `string` | Required path to your endpoint, see [path and query parameters](#path-and-query-parameters) | `article/:articleId`
-`expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes
+`expiration` | `number` | Optional time in ms before this service's cached data becomes stale, defaults to 5 minutes | `5 * 60 * 1000`
 `method` | `GET` | Optional HTTP method of your request, defaults to `GET` | `OPTIONS...`
-`domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option
-`prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, see [middlewares](#middlewares)
+`domain` | `string` | Optional specific domain to use for this service, provide the key you set in your `domains` API option | `staging`
+`prefix` | `string` | Optional specific prefix to use for this service, provide the key you set in your `prefixes` API option | `apiV2`
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option, see [middlewares](#middlewares) | `[serviceSpecificMiddleware]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option, see [middlewares](#middlewares) | `alterFunction`
-`disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options))
-`capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache)
-`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. Defaults to `false`
-`rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api
+`disableCache` | `boolean` | Optional, disables the cache for this service (override your [API's global options](#api-options)) | `true` (defaults to `false`)
+`capService` | `boolean` | Optional, enable or disable capping for this specific service, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `true` (defaults to `false`)
+`capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `42` (defaults to `50`)
+`ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
+`rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api | `true` (defaults to `false`)
 
 ## Fetch options
 
@@ -199,10 +248,10 @@ Key | Type | Description | Example
 ------ | ------ | ------ | ------
 `pathParameters` | `{ [key: string]: string }` | Parameters to replace in your path, see [path and query parameters](#path-and-query-parameters) | `{ documentId: 'xSfdk21' }`
 `queryParameters` | `{ [key: string]: string }` | Query parameters that will be appended to your service's path, , see [path and query parameters](#path-and-query-parameters) | `{ refresh: true, orderBy: 'date' }`
-`headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request
-`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares)
+`headers` | `{ [key: string]: string }` | HTTP headers you need to pass in your request | `{ 'User-Agent': 'My very own agent' }`
+`middlewares` | `APIMiddleware[]` | Optional array of middlewares that override the ones set globally in your `middlewares` API option and in your service's definition, , see [middlewares](#middlewares) | `[superSpecificMiddleware]`
 `responseMiddleware` | `ResponseMiddleware` | Optionnal middleware to alter your API responses that override the one set globally in your `middlewares` API option and in your service's definition, see [middlewares](#middlewares) | `alterFunction`
-`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself
+`fetchOptions` | `any` | Optional, any value passed here will be merged into the options of react-native's `fetch` method so you'll be able to configure anything not provided by the wrapper itself | `{ body: 'user_email=hey@itsme.org' }` (`POST` request example)
 
 ## Path and query parameters
 

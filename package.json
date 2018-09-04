@@ -1,7 +1,7 @@
 {
-  "name": "react-native-offline-api",
-  "version": "2.3.0",
-  "description": "Offline first API wrapper for react-native",
+  "name": "apipeline",
+  "version": "3.0.1",
+  "description": "Feature-rich and pluggable offline-first API wrapper for the browser, node.js and react-native. Easily wire-up your API and make your app work offline in minutes !",
   "main": "./dist/index.js",
   "types": "./src/index.d.ts",
   "scripts": {
@@ -10,11 +10,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Exilz/react-native-offline-api.git"
+    "url": "git+https://github.com/Exilz/apipeline.git"
   },
   "keywords": [
     "react",
     "native",
+    "browser",
+    "node",
+    "node.js",
+    "apipeline",
+    "sqlite",
+    "driver",
     "offline",
     "api",
     "wrapper",
@@ -27,9 +33,9 @@
   "author": "Maxime Bertonnier <m.bertonnier@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Exilz/react-native-offline-api/issues"
+    "url": "https://github.com/Exilz/apipeline/issues"
   },
-  "homepage": "https://github.com/Exilz/react-native-offline-api#readme",
+  "homepage": "https://github.com/Exilz/apipeline#readme",
   "devDependencies": {
     "typescript": "^2.4.2"
   },
