@@ -1,7 +1,12 @@
-import 'whatwg-fetch';
+import APIpeline from '../dist/index';
+
+const API_OPTIONS = {
+  fetchMethod: require('whatwg-fetch'),
+  domains: { default: 'default' }
+};
 
 describe('>>> Requirements', () => {
   it('Fetch is polyfilled', () => {
-    expect(window.fetch).toBeDefined();
+    new APIpeline(API_OPTIONS);
   });
 });
