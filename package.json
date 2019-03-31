@@ -7,10 +7,12 @@
   "scripts": {
     "start": "tsc --watch",
     "build": "tsc",
-    "test": "jest --watch --verbose"
+    "test": "jest --watch --verbose",
+    "test:coverage": "jest --collectCoverage"
   },
   "jest": {
-    "testRegex": "(\\/__tests__\\/.*|(\\.|\\/)(test|spec))\\.(test)\\.[jt]sx?$"
+    "testRegex": "(\\/__tests__\\/.*|(\\.|\\/)(test|spec))\\.(test)\\.[jt]sx?$",
+    "collectCoverageFrom": ["dist/**/*.js"]
   },
   "repository": {
     "type": "git",

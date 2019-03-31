@@ -33,7 +33,7 @@ describe('>>> Test API calls', () => {
     await expect(api.fetch('example')).resolves.toEqual(exampleData);
   });
 
-  it.only('GET/example.json (api.getHeaders)', async () => {
+  it('GET/example.json (api.getHeaders)', async () => {
     const api = new APIpeline(API_OPTIONS, API_SERVICES);
     expect.assertions(2);
     try {
