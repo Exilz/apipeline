@@ -9,6 +9,9 @@
     "build": "tsc",
     "test": "jest --watch --verbose"
   },
+  "jest": {
+    "testRegex": "(\\/__tests__\\/.*|(\\.|\\/)(test|spec))\\.(test)\\.[jt]sx?$"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Exilz/apipeline.git"
@@ -42,6 +45,7 @@
     "@babel/preset-env": "^7.4.2",
     "@types/jest": "^24.0.11",
     "babel-jest": "^24.5.0",
+    "express": "^4.16.4",
     "jest": "^24.5.0",
     "typescript": "^2.4.2",
     "whatwg-fetch": "^3.0.0"
