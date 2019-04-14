@@ -30,6 +30,7 @@ export interface IAPIService {
     capService?: boolean;
     capLimit?: number;
     rawData?: boolean;
+    networkFirst?: boolean;
 }
 
 export interface IAPIServices {
