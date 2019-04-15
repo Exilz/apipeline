@@ -3,3 +3,4 @@ node_modules/
 demos/web/.next
 yarn.lock
 demos/web/package-lock.json
+.idea
