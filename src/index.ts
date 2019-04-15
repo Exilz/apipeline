@@ -100,7 +100,7 @@ export default class APIpeline {
             }
             const cachedData = await this._getCachedData(service, requestId, fullPath, shouldUseCache);
 
-            if ((!options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
+            if ((!this._APIOptions.networkFirst && !options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
                 this._log(`Using fresh cache for ${fullPath}`);
                 return cachedData.data;
             }
