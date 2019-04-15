@@ -114,7 +114,7 @@ var APIpeline = /** @class */ (function () {
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath, shouldUseCache)];
                     case 3:
                         cachedData = _c.sent();
-                        if ((!options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
+                        if ((!this._APIOptions.networkFirst && !options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
                         }
