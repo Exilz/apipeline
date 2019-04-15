@@ -215,6 +215,7 @@ Key | Type | Description | Example
 `ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
 `capServices` | `boolean` | Optional, enable capping for every service, defaults to `false`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `true` (defaults to `false`)
 `capLimit` | `number` | Optional quantity of cached items for each service, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `100` (defaults to `50`)
+`networkFirst` | `boolean` | Optional, changes the flow by performing the network call before checking the cache | `true` (defaults to `false`)
 
 ## Services options
 
@@ -234,6 +235,7 @@ Key | Type | Description | Example
 `capLimit` | `number` | Optional quantity of cached items for this specific service, defaults to `50`, see [limiting the size of your cache](#limiting-the-size-of-your-cache) | `42` (defaults to `50`)
 `ignoreHeadersWhenCaching` | `boolean` | Optional, your requests will be cached independently from the headers you sent. | `true` (defaults to `false`)
 `rawData` | `boolean` | Disables JSON parsing from your network requests, useful if you want to fetch XML or anything else from your api | `true` (defaults to `false`)
+`networkFirst` | `boolean` | Optional, changes the flow by performing the network call before checking the cache. It overrides the one set in your API option | `true` (defaults to `false`)
 
 ## Fetch options
 
