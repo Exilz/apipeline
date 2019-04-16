@@ -1,6 +1,6 @@
 {
   "name": "apipeline",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Feature-rich and pluggable offline-first API wrapper for the browser, node.js and react-native. Easily wire-up your API and make your app work offline in minutes !",
   "main": "./dist/index.js",
   "types": "./src/index.d.ts",
