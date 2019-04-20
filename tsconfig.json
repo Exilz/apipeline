@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "es5",
         "baseUrl": "./",
-        "lib": ["es2015"],
+        "lib": ["es2015", "dom"],
         "pretty": true,
         "jsx": "react-native",
         "outDir": "./dist",
@@ -20,6 +20,7 @@
     ],
     "exclude": [
         "node_modules",
-        "demo"
+        "demo",
+        "__tests__"
     ]
 }

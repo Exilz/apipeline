@@ -6,7 +6,13 @@
   "types": "./src/index.d.ts",
   "scripts": {
     "start": "tsc --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "test": "jest --watch --verbose",
+    "test:coverage": "jest --collectCoverage"
+  },
+  "jest": {
+    "testRegex": "(\\/__tests__\\/.*|(\\.|\\/)(test|spec))\\.(test)\\.[jt]sx?$",
+    "collectCoverageFrom": ["dist/**/*.js"]
   },
   "repository": {
     "type": "git",
@@ -37,7 +43,14 @@
   },
   "homepage": "https://github.com/Exilz/apipeline#readme",
   "devDependencies": {
-    "typescript": "^2.4.2"
+    "@babel/core": "^7.4.0",
+    "@babel/preset-env": "^7.4.2",
+    "@types/jest": "^24.0.11",
+    "babel-jest": "^24.5.0",
+    "express": "^4.16.4",
+    "jest": "^24.5.0",
+    "typescript": "^2.4.2",
+    "whatwg-fetch": "^3.0.0"
   },
   "dependencies": {
     "jssha": "^2.3.1",
