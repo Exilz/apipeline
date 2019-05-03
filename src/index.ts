@@ -534,7 +534,7 @@ export default class APIpeline {
      */
     private _parsePath (serviceDefinition: IAPIService, options?: IFetchOptions): any {
         const { encodeParameters } = this._APIOptions;
-        let path = serviceDefinition.path;
+        let path = serviceDefinition.path || '';
         let parsedQueryParameters = '';
 
         if (options && options.pathParameters) {

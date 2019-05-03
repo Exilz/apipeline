@@ -22,8 +22,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
         while (_) try {
-            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [0, t.value];
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
             switch (op[0]) {
                 case 0: case 1: t = op; break;
                 case 4: _.label++; return { value: op[1], done: false };
@@ -66,7 +66,7 @@ var DEFAULT_SERVICE_OPTIONS = {
 };
 var HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 exports.drivers = { sqliteDriver: sqlite_1.default };
-var APIpeline = (function () {
+var APIpeline = /** @class */ (function () {
     function APIpeline(options, services, driver) {
         this._APIServices = {};
         this._warnedAboutMissingDriver = false;
@@ -192,8 +192,8 @@ var APIpeline = (function () {
     };
     APIpeline.prototype.clearCache = function (service) {
         return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
             var keysToRemove, _a, _b, _i, serviceName, keysForService, err_3;
+            var _this = this;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -506,8 +506,8 @@ var APIpeline = (function () {
      */
     APIpeline.prototype._getAllKeysForService = function (service) {
         return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
             var keys, serviceDictionaryKey, dictionary, dictionaryKeys, err_8;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -588,7 +588,7 @@ var APIpeline = (function () {
         });
     };
     APIpeline.prototype._buildRequestId = function (serviceDefinition, fullPath, fetchHeaders, mergedOptions, // fully merged options
-        fetchOptions // fetch options
+    fetchOptions // fetch options
     ) {
         var ignoreHeadersWhenCaching = this._APIOptions.ignoreHeadersWhenCaching ||
             serviceDefinition.ignoreHeadersWhenCaching ||
@@ -636,7 +636,7 @@ var APIpeline = (function () {
      */
     APIpeline.prototype._parsePath = function (serviceDefinition, options) {
         var encodeParameters = this._APIOptions.encodeParameters;
-        var path = serviceDefinition.path;
+        var path = serviceDefinition.path || '';
         var parsedQueryParameters = '';
         if (options && options.pathParameters) {
             var pathParameters = options.pathParameters;
