@@ -15,6 +15,7 @@ export interface IAPIOptions {
     ignoreHeadersWhenCaching?: boolean;
     capServices?: boolean;
     capLimit?: number;
+    networkFirst?: boolean;
 }
 
 export interface IAPIService {
@@ -30,6 +31,7 @@ export interface IAPIService {
     capService?: boolean;
     capLimit?: number;
     rawData?: boolean;
+    networkFirst?: boolean;
 }
 
 export interface IAPIServices {

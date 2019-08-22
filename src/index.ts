@@ -26,7 +26,7 @@ const DEFAULT_API_OPTIONS = {
     cachePrefix: 'APIPelineCache',
     ignoreHeadersWhenCaching: false,
     capServices: false,
-    capLimit: 50
+    capLimit: 50,
 };
 
 const DEFAULT_SERVICE_OPTIONS: IAPIService = {
@@ -100,7 +100,7 @@ export default class APIpeline {
             }
             const cachedData = await this._getCachedData(service, requestId, fullPath, shouldUseCache);
 
-            if (cachedData.success && cachedData.fresh) {
+            if ((!this._APIOptions.networkFirst && !options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
                 this._log(`Using fresh cache for ${fullPath}`);
                 return cachedData.data;
             }
@@ -115,7 +115,7 @@ export default class APIpeline {
             // If the network request fails, return the cached data if it's valid, a throw an error
             if (!res.success) {
                 if (cachedData.success && cachedData.data) {
-                    this._log(`Using stale cache for ${fullPath} (network request failed)`);
+                    this._log(`Using ${cachedData.fresh ? 'fresh' : 'stale'} cache for ${fullPath} (network request failed)`);
                     return cachedData.data;
                 } else {
                     throw new Error(`Cannot fetch data for ${service} online, no cache either.`);

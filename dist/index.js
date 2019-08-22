@@ -22,8 +22,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
         while (_) try {
-            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [0, t.value];
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
             switch (op[0]) {
                 case 0: case 1: t = op; break;
                 case 4: _.label++; return { value: op[1], done: false };
@@ -57,7 +57,7 @@ var DEFAULT_API_OPTIONS = {
     cachePrefix: 'APIPelineCache',
     ignoreHeadersWhenCaching: false,
     capServices: false,
-    capLimit: 50
+    capLimit: 50,
 };
 var DEFAULT_SERVICE_OPTIONS = {
     method: 'GET',
@@ -66,7 +66,7 @@ var DEFAULT_SERVICE_OPTIONS = {
 };
 var HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE'];
 exports.drivers = { sqliteDriver: sqlite_1.default };
-var APIpeline = (function () {
+var APIpeline = /** @class */ (function () {
     function APIpeline(options, services, driver) {
         this._APIServices = {};
         this._warnedAboutMissingDriver = false;
@@ -114,7 +114,7 @@ var APIpeline = (function () {
                         return [4 /*yield*/, this._getCachedData(service, requestId, fullPath, shouldUseCache)];
                     case 3:
                         cachedData = _c.sent();
-                        if (cachedData.success && cachedData.fresh) {
+                        if ((!this._APIOptions.networkFirst && !options.networkFirst && !serviceDefinition.networkFirst) && cachedData.success && cachedData.fresh) {
                             this._log("Using fresh cache for " + fullPath);
                             return [2 /*return*/, cachedData.data];
                         }
@@ -129,7 +129,7 @@ var APIpeline = (function () {
                         // If the network request fails, return the cached data if it's valid, a throw an error
                         if (!res.success) {
                             if (cachedData.success && cachedData.data) {
-                                this._log("Using stale cache for " + fullPath + " (network request failed)");
+                                this._log("Using " + (cachedData.fresh ? 'fresh' : 'stale') + " cache for " + fullPath + " (network request failed)");
                                 return [2 /*return*/, cachedData.data];
                             }
                             else {
@@ -192,8 +192,8 @@ var APIpeline = (function () {
     };
     APIpeline.prototype.clearCache = function (service) {
         return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
             var keysToRemove, _a, _b, _i, serviceName, keysForService, err_3;
+            var _this = this;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -506,8 +506,8 @@ var APIpeline = (function () {
      */
     APIpeline.prototype._getAllKeysForService = function (service) {
         return __awaiter(this, void 0, void 0, function () {
-            var _this = this;
             var keys, serviceDictionaryKey, dictionary, dictionaryKeys, err_8;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -588,7 +588,7 @@ var APIpeline = (function () {
         });
     };
     APIpeline.prototype._buildRequestId = function (serviceDefinition, fullPath, fetchHeaders, mergedOptions, // fully merged options
-        fetchOptions // fetch options
+    fetchOptions // fetch options
     ) {
         var ignoreHeadersWhenCaching = this._APIOptions.ignoreHeadersWhenCaching ||
             serviceDefinition.ignoreHeadersWhenCaching ||
