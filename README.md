@@ -118,7 +118,7 @@ In `react-native` :
 import { AsyncStorage } from 'react-native';
 import APIpeline from 'apipeline';
 
-const api = new APIPeline(API_OPTIONS, API_SERVICES, AsyncStorage);
+const api = new APIpeline(API_OPTIONS, API_SERVICES, AsyncStorage);
 ```
 
 In an isomorphic setting (next.js for instance): 
